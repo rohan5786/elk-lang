@@ -2,6 +2,7 @@
 #define ELK_LANG_CODE_H
 
 #include "basic.h"
+#include "value.h"
 
 /**
  * In bytecode format, each instruction must have a one-byte operation code (e.g. add/subtract)
@@ -9,22 +10,29 @@
  */
 typedef enum
 {
+    CONSTANT,
     RETURN,
 } OPCode;
 
 /**
- * This is a struct to hold the address of the "code" for any operation (1 byte --> an unsigned 8-bit integer)
- * everything (count and capacity) is in bytes
+ * Struct to hold bytecode arr for the instructions given by some lines
  */
 typedef struct
 {
     int count;
     int capacity;
-    uint8_t *code;
+    uint8_t *bytes;
+    int line_capacity;
+    int line_count;
+    int *lines;
+    int *instruction_counts;
+    ValueArray constants;
 } Code;
 
-void init(Code *code);
-void add(Code *code, uint8_t byte);
+void init_code(Code *code);
+void write_code(Code *code, uint8_t byte, int line);
 void free_code(Code *code); // frees memory
+int add_constant(Code *code, Value val);
+int get_line(Code *code, int index);
 
 #endif

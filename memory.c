@@ -1,7 +1,8 @@
 #include <stdlib.h>
 #include "memory.h"
+#include <stddef.h>
 
-void *reallocate(void *pointer, size_t old_size, size_t new_size) {
+void *reallocate(void *pointer, size_t new_size) {
     if (new_size == 0) {
         free(pointer); // freeing the space for arr
         return NULL; // safety
