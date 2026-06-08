@@ -12,3 +12,12 @@ void *reallocate(void *pointer, size_t new_size) {
     if (result == NULL) exit(1); // err if no memory left
     return result;
 }
+
+// void *reallocate2(void *pointer, size_t new_size) {
+//     free(pointer);
+//     if (new_size == 0) return NULL;
+
+//     void *result = malloc(new_size);
+//     if (result == NULL) exit(1);
+//     return result;
+// }
