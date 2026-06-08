@@ -10,6 +10,7 @@
  */
 typedef enum
 {
+    CONSTANT_LONG,
     CONSTANT,
     RETURN,
 } OPCode;
@@ -31,6 +32,7 @@ typedef struct
 
 void init_code(Code *code);
 void write_code(Code *code, uint8_t byte, int line);
+void write_constant(Code *code, Value val, int line);
 void free_code(Code *code); // frees memory
 int add_constant(Code *code, Value val);
 int get_line(Code *code, int index);

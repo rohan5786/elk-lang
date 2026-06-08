@@ -30,5 +30,5 @@ void free_value_arr(ValueArray *arr)
 
 void print_value(Value val)
 {
-    printf("%.0lf", val);
+    printf("Value: %.0lf", val);
 }

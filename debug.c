@@ -10,12 +10,14 @@ void disassemble(Code *code)
 
 int disassemble_instruction(Code *code, int index, int line)
 {
-    printf("Code: %08d ", index);
+    printf("OPCode: %08d ", index);
 
     uint8_t instruction = code->bytes[index];
 
     switch (instruction)
     {
+    case CONSTANT_LONG:
+        return print_constant_long("CONSTANT_LONG", code, index, line);
     case CONSTANT:
         return print_constant("CONSTANT", code, index, line);
     case RETURN:
@@ -34,10 +36,24 @@ int print_instruction(const char *to_print, int index, int line)
 
 int print_constant(const char *to_print, Code *code, int index, int line)
 {
-    uint8_t constant_index = code->bytes[index + 1];
-    printf("%s %d", to_print, constant_index);
-    print_value(code->constants.values[constant_index]);
-    printf("    %d\n", line);
+    uint8_t const_index = code->bytes[index + 1];
+    printf("%s \t Index: %d \t ", to_print, const_index);
+    print_value(code->constants.values[const_index]);
+    printf(" \t Line: %d\n", line);
 
     return index + 2; // first byte is the OPCode, so you want to skip the index w/the constant
+}
+
+int print_constant_long(const char *to_print, Code *code, int index, int line)
+{
+    uint8_t byte1 = code->bytes[index + 1]; // LSB
+    uint8_t byte2 = code->bytes[index + 2];
+    uint8_t byte3 = code->bytes[index + 3]; // MSB
+
+    int value_full = byte1 | (byte2 << 8) | (byte3 << 16);
+
+    printf("%s \t Index: %d \t ", to_print, value_full);
+    print_value(code->constants.values[value_full]);
+    printf(" \t Line: %d\n", line);
+    return index + 4;
 }
