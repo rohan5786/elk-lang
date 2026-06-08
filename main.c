@@ -1,17 +1,22 @@
 #include "basic.h"
 #include "code.h"
 #include "debug.h"
+#include "vm.h"
 
 int main(int argc, const char *argv[])
 {
+    init_vm();
+
     Code code;
     init_code(&code);
 
-    for (int i = 0; i < 300; i++)
-        write_constant(&code, (double) (i), 100);
+    write_constant(&code, 300.03, 100); // has "CONSTANT"/"CONSTANT_LONG" build in
+    write_code(&code, NEGATE, 101);
+    write_code(&code, RETURN, 102);
 
-    // write_code(&code, RETURN, 123);
-    disassemble(&code);
+    interpret(&code);
+    
+    free_vm();
     free_code(&code);
 
     return 0;

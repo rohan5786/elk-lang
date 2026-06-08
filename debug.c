@@ -5,23 +5,26 @@ void disassemble(Code *code)
 {
     // printf("----------------TEST CODE----------------\n");
     for (int index = 0; index < code->count;)
-        index = disassemble_instruction(code, index, get_line(code, index));
+        index = disassemble_instruction(code, index);
 }
 
-int disassemble_instruction(Code *code, int index, int line)
+int disassemble_instruction(Code *code, int index)
 {
     printf("OPCode: %08d ", index);
 
     uint8_t instruction = code->bytes[index];
 
+    const int line = get_line(code, index);
     switch (instruction)
     {
-    case CONSTANT_LONG:
-        return print_constant_long("CONSTANT_LONG", code, index, line);
-    case CONSTANT:
-        return print_constant("CONSTANT", code, index, line);
-    case RETURN:
-        return print_instruction("RETURN", index, line);
+    case CONSTANT_LONG: return print_constant_long("CONSTANT_LONG", code, index, line);
+    case CONSTANT: return print_constant("CONSTANT", code, index, line);
+    case ADD: return print_instruction("ADD", index, line);
+    case SUB: return print_instruction("SUBTRACT", index, line);
+    case MULT: return print_instruction("MULT", index, line);
+    case DIV: return print_instruction("DIV", index, line);
+    case NEGATE: return print_instruction("NEGATE", index, line);
+    case RETURN: return print_instruction("RETURN", index, line);
     default:
         printf("Unknown code\n");
         return index + 1;

@@ -12,6 +12,11 @@ typedef enum
 {
     CONSTANT_LONG,
     CONSTANT,
+    ADD,
+    SUB,
+    MULT,
+    DIV,
+    NEGATE,
     RETURN,
 } OPCode;
 
