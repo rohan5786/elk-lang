@@ -1,5 +1,5 @@
-#ifndef ELK_LANG_MEMORY_H
-#define ELK_LANG_MEMORY_H
+#ifndef MEMORY_H
+#define MEMORY_H
 
 #include "basic.h"
 

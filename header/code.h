@@ -1,5 +1,5 @@
-#ifndef ELK_LANG_CODE_H
-#define ELK_LANG_CODE_H
+#ifndef CODE_H
+#define CODE_H
 
 #include "basic.h"
 #include "value.h"

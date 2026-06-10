@@ -1,5 +1,5 @@
-#ifndef ELK_LANG_BASIC_H
-#define ELK_LANG_BASIC_H
+#ifndef BASIC_H
+#define BASIC_H
 
 #include <stdbool.h>
 #include <stddef.h>

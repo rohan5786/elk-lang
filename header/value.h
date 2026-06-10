@@ -1,5 +1,5 @@
-#ifndef ELK_LANG_VALUE_H
-#define ELK_LANG_VALUE_H
+#ifndef VALUE_H
+#define VALUE_H
 
 typedef double Value;
 

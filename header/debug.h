@@ -1,5 +1,5 @@
-#ifndef ELK_LANG_DEBUG_H
-#define ELK_LANG_DEBUG_H
+#ifndef DEBUG_H
+#define DEBUG_H
 #define DEBUG_TRACE
 
 #include "code.h"

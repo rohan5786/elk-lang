@@ -1,5 +1,5 @@
-#ifndef ELK_LANG_VM_H
-#define ELK_LANG_VM_H
+#ifndef VM_H
+#define VM_H
 
 // #define STACK_INIT 8192
 // #define STACK_MAX 1048576
@@ -20,7 +20,7 @@ typedef enum
 {
     OK,
     COMPILE_ERR,
-    RUNTIME_RR,
+    RUNTIME_ERR,
 } Result;
 
 void init_stack();
@@ -28,6 +28,6 @@ void push(Value val);
 Value pop();
 void init_vm();
 void free_vm();
-Result interpret(Code *code);
+Result interpret(const char *source);
 
 #endif

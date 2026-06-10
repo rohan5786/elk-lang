@@ -1,7 +1,10 @@
 #include "vm.h"
 #include "debug.h"
 #include "memory.h"
+#include "compiler.h"
+
 #include <stdio.h>
+#include <stdlib.h>
 
 VM vm;
 
@@ -115,9 +118,8 @@ static Result run()
 #undef BINARY_OP
 }
 
-Result interpret(Code *code)
+Result interpret(const char *source)
 {
-    vm.code = code;
-    vm.instruction_ptr = code->bytes;
-    return run();
+    compile(source);
+    return OK;
 }
