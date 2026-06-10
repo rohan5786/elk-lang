@@ -95,7 +95,50 @@ static void skip_whitespace()
     }
 }
 
-// TODO: Keywords, Literals, Multi-line comments
+static Token string()
+{
+    while (peek() != '"' && !end())
+    {
+        if (peek() == '\n') 
+            lx.line++; // in this case we js wanna go past
+        next_char();
+    }
+    next_char(); // passes the next char
+    return make_token(LEX_STRING);
+}
+
+static bool digit(char c)
+{
+    return (c >= '0' && c <= '9');
+}
+
+static bool alpha(char c)
+{
+    return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_';
+}
+
+static Token number()
+{
+    while (digit(peek()))
+        next_char();
+    // decimal caes
+    if (peek() == '.' && digit(peek_next()))
+    {
+        next_char(); // take in the '.'
+        while (digit(peek()))
+            next_char();
+    }
+    return make_token(LEX_NUMBER);
+}
+
+static Token identifier()
+{
+    while (alpha(peek()) || digit(peek()))
+        next_char();
+    return make_token(LEX_IDENTIFIER);
+}
+
+// TODO: Keywords
 Token scan_token()
 {
     skip_whitespace(); // before anything
@@ -103,6 +146,9 @@ Token scan_token()
 
     // checking! fun!; singles then dubles
     const char c = next_char();
+    if (alpha(c)) return identifier(); // keywords and numbers
+    if (digit(c)) return number();
+
     switch (c) {
         case '(': return make_token(LEX_LEFT_PAREN);
         case ')': return make_token(LEX_RIGHT_PAREN);
@@ -119,6 +165,7 @@ Token scan_token()
         case '=': return make_token(next_same('=') ? LEX_EQUAL_EQUAL : LEX_EQUAL);
         case '<': return make_token(next_same('=') ? LEX_LESS_EQUAL : LEX_LESS);
         case '>': return make_token(next_same('=') ? LEX_GREATER_EQUAL : LEX_GREATER);
+        case '"': return string();
     }
 
 
