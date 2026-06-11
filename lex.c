@@ -66,7 +66,7 @@ static char peek_next()
     return *(lx.cur + 1);
 }
 
-static void skip_whitespace()
+static void whitespace()
 {
     while (1)
     {
@@ -75,13 +75,6 @@ static void skip_whitespace()
         switch (c)
         {
             case ' ':
-            case '/':
-                if (peek_next() == '/')
-                {
-                    while (peek() != '\n' && !end()) 
-                        next_char(); // single line cmnt
-                }
-                else return;
             case '\r':
             case '\v':
             case '\f':
@@ -90,6 +83,13 @@ static void skip_whitespace()
             case '\t':
                 next_char();
                 break;
+            case '/':
+                if (peek_next() == '/')
+                {
+                    while (peek() != '\n' && !end()) 
+                        next_char(); // single line cmnt
+                }
+                else return;
             default: return; // if the nonwhite is reached
         } 
     }
@@ -131,17 +131,55 @@ static Token number()
     return make_token(LEX_NUMBER);
 }
 
-static Token identifier()
+static LexType choose_identifier(char *name)
 {
-    while (alpha(peek()) || digit(peek()))
-        next_char();
-    return make_token(LEX_IDENTIFIER);
+    if (strcmp(name, "if") == 0) return LEX_IF; 
+    if (strcmp(name, "else") == 0) return LEX_ELSE;
+    if (strcmp(name, "for") == 0) return LEX_FOR; 
+    if (strcmp(name, "while") == 0) return LEX_WHILE;
+
+    if (strcmp(name, "null") == 0) return LEX_NULL; 
+    if (strcmp(name, "return") == 0) return LEX_RETURN;
+    if (strcmp(name, "void") == 0) return LEX_VOID;
+
+    if (strcmp(name, "i8") == 0) return LEX_I8; 
+    if (strcmp(name, "i16") == 0) return LEX_I16;
+    if (strcmp(name, "i32") == 0) return LEX_I32;
+    if (strcmp(name, "i64") == 0) return LEX_I64;
+
+    if (strcmp(name, "f32") == 0) return LEX_F32;
+    if (strcmp(name, "f64") == 0) return LEX_F64;
+
+    if (strcmp(name, "var") == 0) return LEX_VAR;
+    if (strcmp(name, "vector") == 0) return LEX_VECTOR;
+
+    return LEX_IDENTIFIER;
 }
 
-// TODO: Keywords
+static Token identifier()
+{
+    while (alpha(peek()) || digit(peek())) 
+        next_char();
+
+    // should use ptrdiff_t but it's too small anyways
+    int len = (int) (lx.cur - lx.start); // exactly enough
+    char *str = (char *)malloc(len + 1);
+    if (str == NULL)
+        return error_token("Not enough memory to scan identifier.\n");     
+
+    memcpy(str, lx.start, len); // copies chars onto it
+    str[len] = '\0';
+
+    Token tk = make_token(choose_identifier(str));
+
+    free(str);
+
+    return tk;
+}
+
 Token scan_token()
 {
-    skip_whitespace(); // before anything
+    whitespace(); // before anything
     lx.start = lx.cur;
 
     // checking! fun!; singles then dubles
@@ -166,8 +204,11 @@ Token scan_token()
         case '<': return make_token(next_same('=') ? LEX_LESS_EQUAL : LEX_LESS);
         case '>': return make_token(next_same('=') ? LEX_GREATER_EQUAL : LEX_GREATER);
         case '"': return string();
+        case '&': return make_token(next_same('&') ? LEX_AND_AND : LEX_AND);
+        case '|': return make_token(next_same('|') ? LEX_OR_OR : LEX_OR);
+        case '^': return make_token(LEX_XOR);
+        case '%': return make_token(LEX_PERCENT);
     }
-
 
     if (end()) 
         return make_token(LEX_EOF);
