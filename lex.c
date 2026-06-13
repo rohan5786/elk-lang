@@ -1,6 +1,7 @@
 #include "lex.h"
 #include "string.h"
 
+#include <stdlib.h>
 #include <stdbool.h>
 
 Lexer lx;
@@ -167,7 +168,7 @@ static Token identifier()
     if (str == NULL)
         return error_token("Not enough memory to scan identifier.\n");     
 
-    memcpy(str, lx.start, len); // copies chars onto it
+    memcpy(str, lx.start, len); // copies chars into str
     str[len] = '\0';
 
     Token tk = make_token(choose_identifier(str));

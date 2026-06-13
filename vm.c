@@ -1,22 +1,21 @@
 #include "vm.h"
 #include "debug.h"
 #include "memory.h"
-#include "compiler.h"
+#include "parse.h"
+#include "value.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 
 VM vm;
 
-void init_stack()
-{
+void init_stack() {
     vm.stack_capacity = 8192;
     vm.stack = malloc(sizeof(Value) * vm.stack_capacity);
     vm.top = vm.stack; // pointing above top value (index 0) when empty
 }
 
-void push(Value val)
-{
+void push(Value val) {
     const int old_count = vm.top - vm.stack;
     if (vm.stack_capacity < old_count + 1) 
     {
@@ -30,19 +29,16 @@ void push(Value val)
     vm.top++; // increment index 
 }
 
-Value pop()
-{
+Value pop() {
     vm.top--;       // decrement index
     return *vm.top; // return pointer (Value)
 }
 
-void init_vm()
-{
+void init_vm() {
     init_stack();
 }
 
-void free_vm()
-{
+void free_vm() {
     free(vm.stack);
 }
 
@@ -61,8 +57,7 @@ static Result run()
         *(vm.top - 1) = *(vm.top - 1) op *(vm.top); \
     } while (0)
 
-    while (1) 
-    {
+    while (1) {
         #ifdef DEBUG_TRACE
             for (Value *slot = vm.stack; slot < vm.top; slot++)
             {
@@ -74,8 +69,7 @@ static Result run()
             disassemble_instruction(vm.code, (int)(vm.instruction_ptr - vm.code->bytes));
         #endif
         uint8_t cur_instruction;
-        switch (cur_instruction = NEXT_BYTE())
-        {
+        switch (cur_instruction = NEXT_BYTE()) {
             case CONSTANT_LONG: {
                 const int const_index = NEXT_BYTE() | (NEXT_BYTE() << 8) | (NEXT_BYTE() << 16);
                 push(vm.code->constants.values[const_index]);
@@ -118,8 +112,19 @@ static Result run()
 #undef BINARY_OP
 }
 
-Result interpret(const char *source)
-{
-    compile(source);
-    return OK;
+Result interpret(const char *source) {
+    Code code;
+    init_code(&code);
+
+    if (!compile(source, &code)) {
+        free_code(&code);
+        return COMPILE_ERR;
+    }
+
+    vm.code = &code;
+    vm.instruction_ptr = vm.code->bytes;
+
+    Result rs = run();
+    free_code(&code);
+    return rs;
 }

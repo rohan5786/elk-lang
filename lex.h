@@ -48,6 +48,6 @@ typedef struct {
 } Token;
 
 void init_lexer(const char *source);
-static bool end();
+Token scan_token();
 
 #endif

@@ -23,19 +23,6 @@ static void repl()
     }
 }
 
-static void run_file(const char *path)
-{
-    char *source = read_file(path);
-    Result res = interpret(source);
-    free(source); // freeing ptr for mem!
-
-    // err codes
-    if (res == COMPILE_ERR)
-        exit(65);
-    if (res == RUNTIME_ERR)
-        exit(70);
-}
-
 // h-holy safety!!
 static char *read_file(const char *path)
 {
@@ -56,7 +43,7 @@ static char *read_file(const char *path)
     size_t size = ftell(file);
     if (size < 0)
     {
-        fprintf("Could not read size of file \"%s\".\n", path);
+        fprintf(stderr, "Could not read size of file \"%s\".\n", path);
         exit(74);
     }
 
@@ -82,21 +69,27 @@ static char *read_file(const char *path)
     return buffer;
 }
 
+static void run_file(const char *path)
+{
+    char *source = read_file(path);
+    Result res = interpret(source);
+    free(source); // freeing ptr for mem!
+
+    // err codes
+    if (res == COMPILE_ERR)
+        exit(65);
+    if (res == RUNTIME_ERR)
+        exit(70);
+}
+
 int main(int argc, const char *argv[])
 {
     init_vm();
 
     // only argument is .\elk
-    if (argc == 1)
-    {
-        repl();
-    }
-    else if (argc == 2)
-    {
-        run_file(argv[1]); // only argument is after .\elk
-    }
-    else
-    {
+    if (argc == 1) repl();
+    else if (argc == 2) run_file(argv[1]); // only argument is after .\elk
+    else {
         fprintf(stderr, "Usage: elk [path]\n");
         exit(64);
     }
