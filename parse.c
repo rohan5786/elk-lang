@@ -8,6 +8,29 @@ void init_parser() {
     parse.mult_error = false;
 }
 
+static void error_msg_logic(Token *token, const char *msg) {
+    if (parse.mult_error) return;
+    parse.mult_error = true;
+
+    fprintf(stderr, "[line %d] error ", token->line);
+
+    if (token->type == LEX_EOF) fprintf(stderr, "at end");
+    // because there's no null terminator this stupid syntax is what is necessary to print the word causing the error
+    else if (token->type != LEX_ERROR) fprintf(stderr, "at \"%.*s\"", token->length, token->start);
+    
+    fprintf(stderr, ": %s", msg);
+    parse.error = true;
+}
+
+static void next_token() {
+    parse.prev = parse.cur;
+    while (1) {
+        parse.cur = scan_token();
+        if (parse.cur.type != LEX_ERROR) break;
+        error_msg_logic(&parse.cur, parse.cur.start);
+    }
+}
+
 // In order to properly detect all syntax errors across a script rather than one at a time
 // not useful at the moment with simple compilation being the goal
 static void sync() {
@@ -35,29 +58,6 @@ static void sync() {
                 return;
             default:
         }
-    }
-}
-
-static void error_msg_logic(Token *token, const char *msg) {
-    if (parse.mult_error) return;
-    parse.mult_error = true;
-
-    fprintf(stderr, "[line %d] error ", token->line);
-
-    if (token->type == LEX_EOF) fprintf(stderr, "at end");
-    // because there's no null terminator this stupid syntax is what is necessary to print the word causing the error
-    else if (token->type != LEX_ERROR) fprintf(stderr, "at \"%.*s\"", token->length, token->start);
-    
-    fprintf(stderr, ": %s", msg);
-    parse.error = true;
-}
-
-static void next_token() {
-    parse.prev = parse.cur;
-    while (1) {
-        parse.cur = scan_token();
-        if (parse.cur.type != LEX_ERROR) break;
-        error_msg_logic(&parse.cur, parse.cur.start);
     }
 }
 
