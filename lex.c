@@ -79,9 +79,11 @@ static void whitespace()
             case '\r':
             case '\v':
             case '\f':
+            case '\t':
+                next_char();
+                break;
             case '\n': 
                 lx.line++;
-            case '\t':
                 next_char();
                 break;
             case '/':
@@ -91,7 +93,8 @@ static void whitespace()
                         next_char(); // single line cmnt
                 }
                 else return;
-            default: return; // if the nonwhite is reached
+            default: 
+                return; // if the nonwhite is reached
         } 
     }
 }

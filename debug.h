@@ -1,6 +1,7 @@
 #ifndef DEBUG_H
 #define DEBUG_H
 #define DEBUG_TRACE
+#define DEBUG_PRINT_CODE
 
 #include "code.h"
 

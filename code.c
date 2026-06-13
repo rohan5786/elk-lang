@@ -11,8 +11,7 @@ void init_code(Code *code) {
   code->line_count = 0;
   code->lines = NULL;
   code->instruction_counts = NULL;
-  init_value_arr(&code->constants); // &code->constants == &((*code).constants)
-                                    // (passing pointer to ValueArray)
+  init_value_arr(&code->constants); // &code->constants == &((*code).constants) (passing pointer to ValueArray)
 }
 
 void write_code(Code *code, uint8_t new_byte, int line) {

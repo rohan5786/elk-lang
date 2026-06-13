@@ -1,10 +1,19 @@
 #include "parse.h"
 #include "lex.h"
 
+#ifdef DEBUG_PRINT_CODE
+#include "debug.h"
+#endif
+
 #include <stdlib.h>
 
 Parser parse;
 Code *compiling_code;
+
+static void arithmetic();
+static void commutative();
+static void negate();
+static void raw_and_parentheses();
 
 static Code *cur_code() {
     return compiling_code;
@@ -68,6 +77,7 @@ static void sync() {
     }
 }
 
+// error message if there is a message
 static void finish(LexType type, const char *msg) {
     if (parse.cur.type == type) {
         next_token();
@@ -76,28 +86,82 @@ static void finish(LexType type, const char *msg) {
     error_msg_logic(&parse.cur, msg);
 }
 
-static void write_byte(uint8_t byte) {
+static void emit_byte(uint8_t byte) {
     write_code(cur_code(), byte, parse.prev.line);
 }
 
-static void end_compile() {
-    write_byte(OP_RETURN);
-}
-
-// TODO: Figure out priority-based compilation (recursive descent?)
-static void expression() {
-}
-
-static void write_number() {
+static void emit_num() {
     double val = strtod(parse.prev.start, NULL);
     write_constant(compiling_code, (Value) val, parse.prev.line); // typecasting ok since Value is lit a double lol
     // add_constant((Value) val, parse.prev.line);
 }
 
+static void end_compile() {
+    emit_byte(OP_RETURN);
+#ifdef DEBUG_PRINT_CODE
+    if (!parse.error) disassemble(cur_code());
+#endif
+}
+
+// Priority order: numbers, parentheses, negate, mult/div, add/sub
+
+// goes past automatically
+static bool match_then_next(LexType type) {
+    if (parse.cur.type != type) return false;
+    next_token();
+    return true;
+}
+
+// NUMBERS, PARENTHESES
+static void raw_and_parentheses() {
+    if (match_then_next(LEX_NUMBER)) {
+        emit_num();
+        return;
+    }
+
+    if (match_then_next(LEX_LEFT_PAREN)) {
+        arithmetic(); // restart
+        finish(LEX_RIGHT_PAREN, "Expected ')'.");
+    }
+}
+
+// NEGATE -> symbol, then number in syntax (e.g. var x = - (-5);)
 static void negate() {
-    LexType op_type = parse.prev.type;
-    expression(); // compile it
-    if (op_type == LEX_MINUS) write_byte(OP_NEGATE);
+    // int neg_count = 0;
+    // while (match_then_next(LEX_MINUS)) neg_count++;
+    // while loop looses count when () between - signs come in; neg_count restarts
+    if (match_then_next(LEX_MINUS)) {
+        negate();
+        emit_byte(OP_NEGATE);
+        return;
+    }
+
+    raw_and_parentheses();
+
+    // if (!(neg_count % 2)) emit_byte(OP_NEGATE);
+}
+
+// MULT/DIV
+static void commutative() {
+    negate();
+
+    while (match_then_next(LEX_STAR) || match_then_next(LEX_SLASH)) {
+        LexType op = parse.prev.type; // getting what it was
+        negate();
+        emit_byte((op == LEX_SLASH) ? OP_DIV : OP_MULT);
+    }
+}
+
+// ADD/SUB 
+static void arithmetic() {
+    commutative();
+
+    // while loop essentially checks thru multiple number operations like a + b + c in a row
+    while (match_then_next(LEX_PLUS) || match_then_next(LEX_MINUS)) {
+        LexType op = parse.prev.type; // getting what it was
+        commutative();
+        emit_byte((op == LEX_MINUS) ? OP_SUB : OP_ADD);
+    }
 }
 
 bool compile(const char *source, Code *code) {
@@ -106,10 +170,12 @@ bool compile(const char *source, Code *code) {
     init_parser();
     next_token();
     
-    expression();
+    while (parse.cur.type != LEX_EOF) {
+        arithmetic();
+        finish(LEX_SEMICOLON, "Expected ';' at the end of expression.");
+    }
 
-    finish(LEX_EOF, "End of expression.");
+    // finish(LEX_EOF, "End of expression.");
     end_compile();
-    
     return !parse.error;
 }
