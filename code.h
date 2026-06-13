@@ -5,34 +5,32 @@
 #include "value.h"
 
 /**
- * In bytecode format, each instruction must have a one-byte operation code (e.g. add/subtract)
- * Defining th eones we want for now
+ * In bytecode format, each instruction must have a one-byte operation code
+ * (e.g. add/subtract) Defining th eones we want for now
  */
-typedef enum
-{
-    CONSTANT_LONG,
-    CONSTANT,
-    ADD,
-    SUB,
-    MULT,
-    DIV,
-    NEGATE,
-    RETURN,
+typedef enum {
+  OP_CONSTANT_LONG,
+  OP_CONSTANT,
+  OP_ADD,
+  OP_SUB,
+  OP_MULT,
+  OP_DIV,
+  OP_NEGATE,
+  OP_RETURN,
 } OPCode;
 
 /**
  * Struct to hold bytecode arr for the instructions given by some lines
  */
-typedef struct
-{
-    int count;
-    int capacity;
-    uint8_t *bytes;
-    int line_capacity;
-    int line_count;
-    int *lines;
-    int *instruction_counts;
-    ValueArray constants;
+typedef struct {
+  int count;
+  int capacity;
+  uint8_t *bytes;
+  int line_capacity;
+  int line_count;
+  int *lines;
+  int *instruction_counts;
+  ValueArray constants;
 } Code;
 
 void init_code(Code *code);

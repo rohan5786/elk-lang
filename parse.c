@@ -1,7 +1,14 @@
 #include "parse.h"
 #include "lex.h"
 
+#include <stdlib.h>
+
 Parser parse;
+Code *compiling_code;
+
+static Code *cur_code() {
+    return compiling_code;
+}
 
 void init_parser() {
     parse.error = false;
@@ -69,12 +76,40 @@ static void finish(LexType type, const char *msg) {
     error_msg_logic(&parse.cur, msg);
 }
 
+static void write_byte(uint8_t byte) {
+    write_code(cur_code(), byte, parse.prev.line);
+}
+
+static void end_compile() {
+    write_byte(OP_RETURN);
+}
+
+// TODO: Figure out priority-based compilation (recursive descent?)
+static void expression() {
+}
+
+static void write_number() {
+    double val = strtod(parse.prev.start, NULL);
+    write_constant(compiling_code, (Value) val, parse.prev.line); // typecasting ok since Value is lit a double lol
+    // add_constant((Value) val, parse.prev.line);
+}
+
+static void negate() {
+    LexType op_type = parse.prev.type;
+    expression(); // compile it
+    if (op_type == LEX_MINUS) write_byte(OP_NEGATE);
+}
+
 bool compile(const char *source, Code *code) {
     init_lexer(source);
+    compiling_code = code;
     init_parser();
     next_token();
+    
+    expression();
 
     finish(LEX_EOF, "End of expression.");
+    end_compile();
     
     return !parse.error;
 }
