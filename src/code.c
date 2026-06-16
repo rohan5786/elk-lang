@@ -63,7 +63,7 @@ void write_constant(Code *code, Value val, int line) {
     write_code(code, OP_CONSTANT, line);
     write_code(code, index, line);
   } else {
-    const int grab = 0b111111;
+    const int grab = 0b11111111;
     write_code(code, OP_CONSTANT_LONG, line);
     // write it in 24 bits = 3 bytes --> take the [...] [...] [...] accordingly
     write_code(code, index & grab, line);

@@ -11,11 +11,24 @@
 typedef enum {
   OP_CONSTANT_LONG,
   OP_CONSTANT,
+  // Binary ops.
   OP_ADD,
   OP_SUB,
   OP_MULT,
   OP_DIV,
   OP_NEGATE,
+  // Conditionals.
+  OP_LESS,
+  OP_LESS_EQL,
+  OP_NOT_EQL,
+  OP_EQUAL,
+  OP_GREATER_EQL,
+  OP_GREATER,
+  // cond jumping
+  OP_JMP,
+  OP_TRUE_JMP,
+  OP_FALSE_JMP,
+  // ending
   OP_RETURN,
 } OPCode;
 
@@ -25,19 +38,19 @@ typedef enum {
 typedef struct {
   int count;
   int capacity;
-  uint8_t *bytes;
+  uint8_t* bytes;
   int line_capacity;
   int line_count;
-  int *lines;
-  int *instruction_counts;
+  int* lines;
+  int* instruction_counts;
   ValueArray constants;
 } Code;
 
-void init_code(Code *code);
-void write_code(Code *code, uint8_t byte, int line);
-void write_constant(Code *code, Value val, int line);
-void free_code(Code *code); // frees memory
-int add_constant(Code *code, Value val);
-int get_line(Code *code, int index);
+void init_code(Code* code);
+void write_code(Code* code, uint8_t byte, int line);
+void write_constant(Code* code, Value val, int line);
+void free_code(Code* code);  // frees memory
+int add_constant(Code* code, Value val);
+int get_line(Code* code, int index);
 
 #endif

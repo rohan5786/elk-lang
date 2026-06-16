@@ -192,6 +192,7 @@ Token scan_token()
     if (digit(c)) return number();
 
     switch (c) {
+        case '\0': return make_token(LEX_EOF);
         case '(': return make_token(LEX_LEFT_PAREN);
         case ')': return make_token(LEX_RIGHT_PAREN);
         case '{': return make_token(LEX_LEFT_BRACE);
@@ -213,9 +214,6 @@ Token scan_token()
         case '^': return make_token(LEX_XOR);
         case '%': return make_token(LEX_PERCENT);
     }
-
-    if (end()) 
-        return make_token(LEX_EOF);
     
     return error_token("Idk bru");
 }
