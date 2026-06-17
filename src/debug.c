@@ -68,6 +68,12 @@ int disassemble_instruction(Code* code, int index) {
       return print_instruction("EQUAL", index, line);
     case OP_GREATER:
       return print_instruction("GREATER", index, line);
+    case OP_AND:
+      return print_instruction("AND", index, line);
+    case OP_OR:
+      return print_instruction("OR", index, line);
+    case OP_XOR:
+      return print_instruction("XOR", index, line);
     case OP_JMP:
       return jmp_instruction("JMP", index, line);
     case OP_TRUE_JMP:

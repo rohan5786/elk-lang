@@ -54,10 +54,15 @@ static Result run() {
     *(vm.top - 1) = *(vm.top - 1) op * (vm.top); \
   } while (0)
 
-#define COMPARE(op)                                        \
+#define SINGLE_COMPARE(op)                                 \
   do {                                                     \
     vm.top--;                                              \
     *(vm.top - 1) = *(vm.top - 1) op * vm.top ? 1.0 : 0.0; \
+  } while (0)
+
+#define MULT_COMPARE(op)                                    \
+  do {                                                      \
+    *(vm.top - 1) = (pop() == 1 op pop() == 1) ? 1.0 : 0.0; \
   } while (0)
 
   while (1) {
@@ -104,27 +109,39 @@ static Result run() {
         break;
       }
       case OP_LESS: {
-        COMPARE(<);
+        SINGLE_COMPARE(<);
         break;
       }
       case OP_LESS_EQL: {
-        COMPARE(<=);
+        SINGLE_COMPARE(<=);
         break;
       }
       case OP_EQUAL: {
-        COMPARE(==);
+        SINGLE_COMPARE(==);
         break;
       }
       case OP_NOT_EQL: {
-        COMPARE(!=);
+        SINGLE_COMPARE(!=);
         break;
       }
       case OP_GREATER_EQL: {
-        COMPARE(>=);
+        SINGLE_COMPARE(>=);
         break;
       }
       case OP_GREATER: {
-        COMPARE(>);
+        SINGLE_COMPARE(>);
+        break;
+      }
+      case OP_AND: {
+        MULT_COMPARE(&&);
+        break;
+      }
+      case OP_OR: {
+        MULT_COMPARE(||);
+        break;
+      }
+      case OP_XOR: {
+        MULT_COMPARE(^);
         break;
       }
       case OP_JMP: {

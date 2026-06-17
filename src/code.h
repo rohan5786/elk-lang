@@ -17,13 +17,17 @@ typedef enum {
   OP_MULT,
   OP_DIV,
   OP_NEGATE,
-  // Conditionals.
+  // single eval conditionals
   OP_LESS,
   OP_LESS_EQL,
   OP_NOT_EQL,
   OP_EQUAL,
   OP_GREATER_EQL,
   OP_GREATER,
+  // mult eval cond
+  OP_AND,
+  OP_OR,
+  OP_XOR,
   // cond jumping
   OP_JMP,
   OP_TRUE_JMP,

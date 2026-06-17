@@ -10,6 +10,8 @@
 Parser parse;
 Code *compiling_code;
 
+static void mult_comparison();
+static void single_comparison();
 static void arithmetic();
 static void commutative();
 static void negate();
@@ -168,7 +170,7 @@ static void arithmetic() {
 }
 
 // new lowest precedence
-static void comparison() {
+static void single_comparison() {
     arithmetic();
 
     while (
@@ -210,6 +212,29 @@ static void comparison() {
     }
 }
 
+static void mult_comparison() {
+    single_comparison();
+
+    while (match_then_next(LEX_AND_AND) || match_then_next(LEX_OR_OR) || match_then_next(LEX_XOR)) {
+        LexType op = parse.prev.type;
+        single_comparison();
+        switch (op) {
+            case LEX_AND_AND: {
+                emit_byte(OP_AND);
+                break;
+            }
+            case LEX_OR_OR: {
+                emit_byte(OP_OR);
+                break;
+            }
+            case LEX_XOR: {
+                emit_byte(OP_XOR);
+                break;
+            }
+        }
+    }
+}
+
 static int emit_jump(OPCode jmp_code) {
     emit_byte(jmp_code);
     emit_byte(0b11111111); // lsb placeholder (for now)
@@ -235,7 +260,7 @@ static void update_jump_size(int offset_index) {
 // if ( 1.0 or 0.0 eval ) { ... }
 static void if_statement() {
     finish(LEX_LEFT_PAREN, "Expected '(' at the beginning of expression.");
-    comparison();
+    mult_comparison();
     finish(LEX_RIGHT_PAREN, "Expected ')' at the end of expression.");
 
     int if_offset_index = emit_jump(OP_FALSE_JMP);
@@ -267,7 +292,7 @@ static void statement() {
         if_statement();
     }
     else {
-        comparison();
+        mult_comparison();
         finish(LEX_SEMICOLON, "Expected ';' at the end of expression.");
     }
 }
