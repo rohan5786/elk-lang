@@ -275,7 +275,11 @@ static void if_statement() {
         int else_offset_index = emit_jump(OP_JMP);
 
         update_jump_size(if_offset_index); // jumps the OP_JMP code as well!
-
+        
+        if (match_then_next(LEX_IF)) {
+            if_statement();
+            return;
+        }
         finish(LEX_LEFT_BRACE, "Expected '{' at the beginning of expression.");
         while (parse.cur.type != LEX_RIGHT_BRACE && parse.cur.type != LEX_EOF)
             statement();
