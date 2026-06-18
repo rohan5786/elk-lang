@@ -217,3 +217,34 @@ Token scan_token()
     
     return error_token("Idk bru");
 }
+
+OPCode lextype_to_opcode(LexType type) {
+    switch (type) {
+        case LEX_PLUS: 
+            return OP_ADD;
+        case LEX_MINUS: 
+            return OP_SUB;
+        case LEX_STAR: 
+            return OP_MULT;
+        case LEX_SLASH: 
+            return OP_DIV;
+        case LEX_LESS_EQUAL: 
+            return OP_LESS_EQL;
+        case LEX_LESS: 
+            return OP_LESS;
+        case LEX_BANG_EQUAL: 
+            return OP_NOT_EQL;
+        case LEX_EQUAL_EQUAL: 
+            return OP_EQUAL;
+        case LEX_GREATER_EQUAL: 
+            return OP_GREATER_EQL;
+        case LEX_GREATER: 
+            return OP_GREATER;
+        case LEX_AND_AND: 
+            return OP_AND;
+        case LEX_OR_OR: 
+            return OP_OR;
+        case LEX_XOR: 
+            return OP_XOR;
+    }
+}

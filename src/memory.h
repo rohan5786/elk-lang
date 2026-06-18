@@ -11,5 +11,6 @@
 
 // size_t are in bytes, so we use sizeof to give it
 void *reallocate(void *pointer, size_t new_size);
+int values_equal(Value a, Value b);
 
 #endif

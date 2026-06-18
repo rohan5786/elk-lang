@@ -1,6 +1,8 @@
 #ifndef LEX_H
 #define LEX_H
 
+#include "code.h"
+
 #include <stdbool.h>
 
 typedef struct
@@ -49,5 +51,6 @@ typedef struct {
 
 void init_lexer(const char *source);
 Token scan_token();
+OPCode lextype_to_opcode(LexType type);
 
 #endif
