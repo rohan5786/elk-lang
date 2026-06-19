@@ -1,6 +1,7 @@
 #include "parse.h"
 
 #include "lex.h"
+#include "error.h"
 
 #ifdef DEBUG_PRINT_CODE
 #include "debug.h"
@@ -23,24 +24,8 @@ static void statement();
 static Code* cur_code() { return compiling_code; }
 
 void init_parser() {
-  parse.error = false;
-  parse.mult_error = false;
-}
-
-static void error_msg_logic(Token* token, const char* msg) {
-  if (parse.mult_error) return;
-  parse.mult_error = true;
-
-  fprintf(stderr, "[line %d] error ", token->line);
-
-  if (token->type == LEX_EOF) fprintf(stderr, "at end");
-  // because there's no null terminator this stupid syntax is what is necessary
-  // to print the word causing the error
-  else if (token->type != LEX_ERROR)
-    fprintf(stderr, "at \"%.*s\"", token->length, token->start);
-
-  fprintf(stderr, ": %s", msg);
-  parse.error = true;
+    parse.error = false;
+    parse.mult_error = false;
 }
 
 static void next_token() {
@@ -49,17 +34,18 @@ static void next_token() {
         parse.cur = scan_token();
         // printf("CUR TOKEN TYPE: %d\n", parse.cur.type);
         if (parse.cur.type != LEX_ERROR) break;
-        error_msg_logic(&parse.cur, parse.cur.start);
+        lex_err(&parse);
     }
 }
 
 // error message if there is a message
-static void finish(LexType type, const char* msg) {
+static void finish(LexType type, char* msg) {
     if (parse.cur.type == type) {
         next_token();
         return;
     }
-    error_msg_logic(&parse.cur, msg);
+
+    syntax_err(&parse, msg);
 }
 
 static void emit_byte(uint8_t byte) {
@@ -99,7 +85,7 @@ static void raw_and_parentheses() {
 
     if (match_then_next(LEX_LEFT_PAREN)) {
         arithmetic();  // restart
-        finish(LEX_RIGHT_PAREN, "Expected ')'.");
+        finish(LEX_RIGHT_PAREN, ")");
     }
 }
 
@@ -174,9 +160,8 @@ static void update_jump_size(int offset_index) {
     // = count - offset - 3
     int total_skip = cur_code()->count - offset_index - 3;
 
-    // uint16_t max, TODO: make runtime err logic
     if (total_skip > 65535)
-    error_msg_logic(&parse.cur, "Too large of an if-statement block.");
+        compile_err(&parse, "'if' block is too large for a jump intersection (maximum 65535 bytes)");
 
     // add the byte # to the bytecode arr; lsb then hsb
     cur_code()->bytes[offset_index + 1] =
@@ -186,16 +171,16 @@ static void update_jump_size(int offset_index) {
 
 // if ( 1.0 or 0.0 eval ) { ... }
 static void if_statement() {
-  finish(LEX_LEFT_PAREN, "Expected '(' at the beginning of expression.");
+  finish(LEX_LEFT_PAREN, "(");
   mult_comparison();
-  finish(LEX_RIGHT_PAREN, "Expected ')' at the end of expression.");
+  finish(LEX_RIGHT_PAREN, ")");
 
   int if_offset_index = emit_jump(OP_FALSE_JMP);
 
-  finish(LEX_LEFT_BRACE, "Expected '{' at the beginning of expression.");
+  finish(LEX_LEFT_BRACE, "{");
   while (parse.cur.type != LEX_RIGHT_BRACE && parse.cur.type != LEX_EOF)
     statement();
-  finish(LEX_RIGHT_BRACE, "Expected '}' at the end of expression.");
+  finish(LEX_RIGHT_BRACE, "}");
 
   // handle else case after
   if (match_then_next(LEX_ELSE)) {
@@ -207,10 +192,10 @@ static void if_statement() {
       if_statement();
       return;
     }
-    finish(LEX_LEFT_BRACE, "Expected '{' at the beginning of expression.");
+    finish(LEX_LEFT_BRACE, "{");
     while (parse.cur.type != LEX_RIGHT_BRACE && parse.cur.type != LEX_EOF)
       statement();
-    finish(LEX_RIGHT_BRACE, "Expected '}' at the end of expression.");
+    finish(LEX_RIGHT_BRACE, "}");
 
     update_jump_size(else_offset_index);
   } else {
@@ -218,12 +203,17 @@ static void if_statement() {
   }
 }
 
+// TOOD: implement datatype recognition (non-precedence w/arithmetic, prolly ahead)
+// ---> after recognition, run edgecase error system testing
+// ---> after error testing, implement datatype syntax parsing
+// ---> after parsing datatypes, many large scale tests 
+
 static void statement() {
   if (match_then_next(LEX_IF)) {
     if_statement();
   } else {
     mult_comparison();
-    finish(LEX_SEMICOLON, "Expected ';' at the end of expression.");
+    finish(LEX_SEMICOLON, ";");
   }
 }
 
@@ -235,7 +225,22 @@ bool compile(const char* source, Code* code) {
 
   while (parse.cur.type != LEX_EOF) statement();
 
-  // finish(LEX_EOF, "End of expression.");
   end_compile();
   return !parse.error;
 }
+
+// static void error_msg_logic(Token* token, const char* msg) {
+//   if (parse.mult_error) return;
+//   parse.mult_error = true;
+
+//   fprintf(stderr, "[line %d] error ", token->line);
+
+//   if (token->type == LEX_EOF) fprintf(stderr, "at end");
+//   // because there's no null terminator this stupid syntax is what is necessary
+//   // to print the word causing the error
+//   else if (token->type != LEX_ERROR)
+//     fprintf(stderr, "at \"%.*s\"", token->length, token->start);
+
+//   fprintf(stderr, ": %s", msg);
+//   parse.error = true;
+// }

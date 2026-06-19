@@ -1,6 +1,8 @@
 #ifndef VALUE_H
 #define VALUE_H
 
+#include "vector.h"
+
 #include <stdbool.h>
 
 typedef enum {
@@ -37,7 +39,7 @@ typedef struct Value {
 #define GET_NUM(value) ((value).as.num)
 #define GET_CHAR(value) ((value).as.ch)
 #define GET_STR(value) ((value).as.str)
-#define GET_VEC(value) ((value).as.vec)
+#define GET_VEC(value) ((Vector* )((value).as.vec))
 
 // checking values
 #define IS_NUM(value) ((value).type == VAL_NUM)
@@ -59,5 +61,6 @@ void init_value_arr(ValueArray* arr);
 void write_value_arr(ValueArray* arr, Value val);
 void free_value_arr(ValueArray* arr);
 void print_value(Value val);
+void print_err_value(Value val);
 
 #endif

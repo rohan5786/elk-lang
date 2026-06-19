@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "debug.h"
+#include "error.h"
 #include "memory.h"
 #include "parse.h"
 #include "value.h"
@@ -49,33 +50,35 @@ static Result run() {
 // while(0) stuff is because of if/else ; termination on a {} function
 // (elif/else never reached) ptr logic makes this faster because less movement
 // of vm.top
-#define BINARY_OP(op)                                       \
-  do {                                                      \
-    if (!IS_NUM(*(vm.top - 2)) || !IS_NUM(*(vm.top - 3))) { \
-      runtime_err("Operands must be numbers.");             \
-      return RUNTIME_ERR;                                   \
-    }                                                       \
-    double b = pop().as.num;                                \
-    double a = pop().as.num;                                \
-    push(NUM_VAL(a op b));                                  \
+#define BINARY_OP(op)                                              \
+  do {                                                             \
+    if (!IS_NUM(*(vm.top - 2)) || !IS_NUM(*(vm.top - 1))) {        \
+      runtime_err(*(vm.top - 2), "both operands must be numbers"); \
+      return RUNTIME_ERR;                                          \
+    }                                                              \
+    double b = pop().as.num;                                       \
+    double a = pop().as.num;                                       \
+    push(NUM_VAL(a op b));                                         \
   } while (0)
 
-#define SINGLE_COMPARE(op)                                  \
-  do {                                                      \
-    if (!IS_NUM(*(vm.top - 2)) || !IS_NUM(*(vm.top - 3))) { \
-      runtime_err("Operands must be numbers.");             \
-      return RUNTIME_ERR;                                   \
-    }                                                       \
-    double b = pop().as.num;                                \
-    double a = pop().as.num;                                \
-    push(NUM_VAL((a op b) ? 1.0 : 0.0));                    \
+#define SINGLE_COMPARE(op)                                         \
+  do {                                                             \
+    if (!IS_NUM(*(vm.top - 2)) || !IS_NUM(*(vm.top - 1))) {        \
+      runtime_err(*(vm.top - 2), "both operands must be numbers"); \
+      return RUNTIME_ERR;                                          \
+    }                                                              \
+    double b = pop().as.num;                                       \
+    double a = pop().as.num;                                       \
+    push(NUM_VAL((a op b) ? 1.0 : 0.0));                           \
   } while (0)
 
-#define MULT_COMPARE(op)                                                 \
-  do {                                                                   \
-    Value b = pop();                                                     \
-    Value a = pop();                                                     \
-    push(NUM_VAL((values_equal(a, NUM_VAL(1)) op values_equal(b, NUM_VAL(1))) ? 1.0 : 0.0)); \
+#define MULT_COMPARE(op)                                                      \
+  do {                                                                        \
+    Value b = pop();                                                          \
+    Value a = pop();                                                          \
+    push(NUM_VAL((values_equal(a, NUM_VAL(1)) op values_equal(b, NUM_VAL(1))) \
+                     ? 1.0                                                    \
+                     : 0.0));                                                 \
   } while (0)
 
   while (1) {
@@ -120,7 +123,7 @@ static Result run() {
       case OP_NEGATE: {
         Value old = pop();
         if (!IS_NUM(*(vm.top - 1))) {
-          runtime_err("Operand must be a number.");
+          runtime_err(*(vm.top - 1), "single operand must be a number");
           return RUNTIME_ERR;
         }
         push(NUM_VAL(-old.as.num));
@@ -169,17 +172,20 @@ static Result run() {
       }
       case OP_TRUE_JMP: {
         // find the amnt of bytes of instruction to skip
-        uint16_t full_offset = NEXT_BYTE() | (NEXT_BYTE() << 8);  // LSB is added first
+        uint16_t full_offset =
+            NEXT_BYTE() | (NEXT_BYTE() << 8);  // LSB is added first
         Value val = pop();
         // total offset to where we start on the next valid instruction set
-        const bool true_eq = (!(IS_NUM(val) || IS_NULL(val)) || GET_NUM(val) != 0.0);
+        const bool true_eq =
+            (!(IS_NUM(val) || IS_NULL(val)) || GET_NUM(val) != 0.0);
         if (true_eq) vm.instruction_ptr += full_offset;
         break;
       }
       case OP_FALSE_JMP: {
         uint16_t full_offset = NEXT_BYTE() | (NEXT_BYTE() << 8);
         Value val = pop();
-        const bool true_eq = (!(IS_NUM(val) || IS_NULL(val)) || GET_NUM(val) != 0.0);
+        const bool true_eq =
+            (!(IS_NUM(val) || IS_NULL(val)) || GET_NUM(val) != 0.0);
         if (!true_eq) vm.instruction_ptr += full_offset;
         break;
       }

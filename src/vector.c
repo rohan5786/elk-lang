@@ -1,7 +1,9 @@
 #include "vector.h"
 #include "memory.h"
 
-// TODO: write rest of vector functions
+#include <stdlib.h>
+
+// TODO: write rest of classic vector functions
 void init_vec(Vector* vec) {
     vec->capacity = 0;
     vec->count = 0;
@@ -19,11 +21,17 @@ void vec_push(Vector* vec, Value val) {
     vec->count++;
 }
 
+// assumes index in bounds
+Value vec_get(Vector* vec, int index) {
+    return vec->items[index];
+}
+
 void free_vec(Vector* vec) {
     ADD_ARR(Value, vec->items, 0); // free the items
     free(vec); // free the controller
 }
 
+// simple 0/1 veccmp returner
 int veccmp(Vector* a, Vector* b) {
     if (a->count != b->count) return 0;
     for (int i = 0; i < a->count; i++)

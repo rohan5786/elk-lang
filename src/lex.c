@@ -167,7 +167,7 @@ static Token identifier()
 
     // should use ptrdiff_t but it's too small anyways
     int len = (int) (lx.cur - lx.start); // exactly enough
-    char *str = (char *)malloc(len + 1);
+    char* str = (char* )malloc(len + 1);
     if (str == NULL)
         return error_token("Not enough memory to scan identifier.\n");     
 
@@ -215,7 +215,9 @@ Token scan_token()
         case '%': return make_token(LEX_PERCENT);
     }
     
-    return error_token("Idk bru");
+    char err_msg[] = "unrecognizable token at '_'\0"; 
+    err_msg[25] = c;
+    return error_token(err_msg);
 }
 
 OPCode lextype_to_opcode(LexType type) {

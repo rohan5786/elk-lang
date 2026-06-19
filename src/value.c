@@ -55,3 +55,33 @@ void print_value(Value val) {
     }
   }
 }
+
+void print_err_value(Value val) {
+  switch (val.type) {
+    case VAL_NULL: {
+      fprintf(stderr, "NULL");
+      break;
+    }
+    case VAL_NUM: {
+      fprintf(stderr, "%g", val.as.num);
+      break;
+    }
+    case VAL_CHAR: {
+      fprintf(stderr, "'%c'", val.as.ch);
+      break;
+    }
+    case VAL_STR: {
+      fprintf(stderr, "%s", val.as.str);
+      break;
+    }
+    case VAL_VEC: {
+      Vector* vec = GET_VEC(val);
+      fprintf(stderr, "[");
+      for (int i = 0; i < vec->count; i++) {
+        print_value(vec->items[i]);
+        if (i < vec->count - 1) fprintf(stderr, ", ");
+      }
+      fprintf(stderr, "]");
+    }
+  }
+}
