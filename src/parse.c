@@ -423,7 +423,6 @@ static void var_declaration() {
 // ---> after parsing datatypes, many large scale tests 
 
 static void statement() {
-    printf("CUR TOKEN: %.*s\n", parse.cur.length, parse.cur.start);
     if (match_datatype_peek()) 
         var_declaration();
     else if (match_then_next(LEX_IF)) 
