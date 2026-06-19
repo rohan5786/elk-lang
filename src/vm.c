@@ -94,6 +94,20 @@ static Result run() {
 #endif
     uint8_t cur_instruction;
     switch (cur_instruction = NEXT_BYTE()) {
+      case OP_VECTOR: {
+        // build YOUR VECTOR!
+        uint16_t vec_size = NEXT_BYTE() | (NEXT_BYTE() << 8);
+        Vector* vec = malloc(sizeof(Vector));
+        init_vec(vec);
+        vec->capacity = vec_size;
+        vec->count = vec_size;
+        vec->items = malloc(sizeof(Vector) * vec_size);
+        for (int i = vec_size - 1; i >= 0; i--)
+          vec->items[i] = pop();
+
+        push(VEC_VAL((struct Vector*)(vec)));
+        break;
+      }
       case OP_CONSTANT_LONG: {
         const int const_index =
             NEXT_BYTE() | (NEXT_BYTE() << 8) | (NEXT_BYTE() << 16);

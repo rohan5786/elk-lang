@@ -1,7 +1,8 @@
 #ifndef CODE_H
 #define CODE_H
 
-#include "basic.h"
+#include <stdint.h>
+
 #include "value.h"
 
 /**
@@ -9,6 +10,8 @@
  * (e.g. add/subtract) Defining th eones we want for now
  */
 typedef enum {
+    // Values.
+    OP_VECTOR,
     OP_CONSTANT_LONG,
     OP_CONSTANT,
     // Binary ops.

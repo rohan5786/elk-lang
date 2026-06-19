@@ -154,8 +154,11 @@ static LexType choose_identifier(char *name)
     if (strcmp(name, "f32") == 0) return LEX_F32;
     if (strcmp(name, "f64") == 0) return LEX_F64;
 
-    if (strcmp(name, "var") == 0) return LEX_VAR;
+    // chars here
+    if (strcmp(name, "str") == 0) return LEX_STR;
+
     if (strcmp(name, "vector") == 0) return LEX_VECTOR;
+    if (strcmp(name, "var") == 0) return LEX_VAR;
 
     return LEX_IDENTIFIER;
 }

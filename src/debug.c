@@ -1,5 +1,7 @@
 #include "debug.h"
 
+#include <stdio.h>
+
 #include "value.h"
 
 void disassemble(Code* code) {
@@ -41,6 +43,12 @@ int print_constant_long(const char* to_print, Code* code, int index, int line) {
   return index + 4;
 }
 
+// TODO: FIX THIS 
+int print_vector(const char* to_print, int index, int line) {
+  printf("%s    %d\n", to_print, line);
+  return index + 3;
+}
+
 int disassemble_instruction(Code* code, int index) {
   printf("OPCode: %08d ", index);
 
@@ -48,6 +56,8 @@ int disassemble_instruction(Code* code, int index) {
 
   const int line = get_line(code, index);
   switch (instruction) {
+    case OP_VECTOR:
+      return print_vector("VECTOR", index, line);
     case OP_CONSTANT_LONG:
       return print_constant_long("CONSTANT_LONG", code, index, line);
     case OP_CONSTANT:

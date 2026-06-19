@@ -2,6 +2,7 @@
 #include "parse.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 
 void lex_err(Parser* p) {
     if (p->error) p->mult_error = true;

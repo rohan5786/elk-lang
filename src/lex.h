@@ -36,6 +36,7 @@ typedef enum {
   LEX_NULL, LEX_RETURN, LEX_VAR, LEX_VOID,
   LEX_I8, LEX_I16, LEX_I32, LEX_I64,
   LEX_F32, LEX_F64,
+  LEX_STR,
   // vectors are basically interpreted in the parser in a line (LEX_VECTOR, LEX_LESS, (?) , LEX_GREATER)
   LEX_VECTOR,
 
