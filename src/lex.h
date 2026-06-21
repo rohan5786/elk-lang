@@ -52,6 +52,7 @@ typedef struct {
 
 void init_lexer(const char *source);
 Token scan_token();
+const char* lex_datatype_to_str(LexType type);
 OPCode lextype_to_opcode(LexType type);
 
 #endif

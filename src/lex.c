@@ -153,7 +153,6 @@ static LexType choose_identifier(char *name)
 
     if (strcmp(name, "f32") == 0) return LEX_F32;
     if (strcmp(name, "f64") == 0) return LEX_F64;
-
     // chars here
     if (strcmp(name, "str") == 0) return LEX_STR;
 
@@ -221,6 +220,31 @@ Token scan_token()
     char err_msg[] = "unrecognizable token at '_'\0"; 
     err_msg[25] = c;
     return error_token(err_msg);
+}
+
+const char* lex_datatype_to_str(LexType type) {
+    switch (type) {
+        case LEX_I8:
+            return "i8";
+        case LEX_I16:
+            return "i16";
+        case LEX_I32:
+            return "i32";
+        case LEX_I64:
+            return "i64";
+        case LEX_F32:
+            return "f32";
+        case LEX_F64:
+            return "f64";
+        case LEX_STR:
+            return "str";
+        case LEX_VECTOR:
+            return "vector";
+        case LEX_VAR:
+            return "var";
+        default:
+            return "unknown datatype"; 
+    }
 }
 
 OPCode lextype_to_opcode(LexType type) {

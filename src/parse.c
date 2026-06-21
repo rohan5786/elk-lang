@@ -62,6 +62,7 @@ static void emit_var_name(Token name) {
     // put this in the name map
 }
 
+// TODO: implement i64 compatibility
 static void emit_num() {
     double val = strtod(parse.prev.start, NULL);
     write_constant(
@@ -121,7 +122,7 @@ static int check_vector_inner_type(LexType inner_type) {
         }
         case LEX_STR: {
             if (parse.cur.type != LEX_STRING) {
-                compile_err(&parse, "type mismatch: expected string literal inside vector literal");
+                compile_err(&parse, "type mismatch: expected type 'str' inside vector literal");
                 return 0;
             }
             break;
@@ -142,15 +143,32 @@ static void vector_literal(LexType inner_type) {
         uint16_t total = 0;
         if (!match_then_next(LEX_RIGHT_BRACE)) {
             do {
+                if (match_then_next(LEX_COMMA)) {
+                    // replacing "_" w/datatype name
+                    const char* datatype = lex_datatype_to_str(inner_type);
+                    char compile_err_msg[] = "type mismatch: expected type '_' inside vector literal";
+                    char* sub_pos = strstr(compile_err_msg, "_");
+                    char* after_sub_pos = sub_pos + strlen("_");
+
+                    // moving tail part down to be [sub_pos + strlen(datatype)] units after
+                    memmove(sub_pos + strlen(datatype), after_sub_pos, strlen(after_sub_pos) + 1); // + 1 = '\0'
+                    // copying datatype str into new mem space
+                    memcpy(sub_pos, datatype, strlen(datatype));
+    
+                    compile_err(&parse, compile_err_msg);
+                    break;
+                }
+
                 // switch statement on inner_type
-                if (!check_vector_inner_type(inner_type)) return;
+                if (!check_vector_inner_type(inner_type)) 
+                    break;
 
                 // get to innermost vector, then do arithmetic
                 if (inner_type == LEX_VECTOR) vector_literal(get_vector_base_type(inner_type));
                 else mult_comparison();
 
                 total++;
-                if (total == 65536) {
+                if (total > 65535) {
                     compile_err(&parse, "size limit of 65535 elements for type 'vector'");
                     return;
                 }
@@ -346,39 +364,93 @@ static void parse_vector() {
     emit_var_name(var_name);
 }
 
-// TODO: finish datatype parsing
-// static void parse_int(uint8_t bits) {
-//     next_token(); // consume
-//     if (!match_then_next(LEX_IDENTIFIER)) {
-//         compile_err(&parse, "expected variable name identifier after type declaration");
-//         return;
-//     }
+static void emit_int(const bool has_equals, int bits, int64_t value) {
+    switch (bits) {
+        case 8: {
+            int8_t newval = (int8_t) value;
+            emit_byte(OP_I8);
+            if (!has_equals) {
+                emit_byte(0);
+                return;
+            }
+            emit_byte(newval);
+            break;
+        }
+        case 16: {
+            int16_t newval = (int16_t) value;
+            emit_byte(OP_I16);
+            if (!has_equals) {
+                emit_byte(0);
+                return;
+            }
+            emit_byte(newval & 0b11111111);
+            emit_byte((newval >> 8) & 0b11111111);
+            break;
+        }
+        case 32: {
+            int32_t newval = (int32_t) value;
+            emit_byte(OP_I32);
+            if (!has_equals) {
+                emit_byte(0);
+                return;
+            }
+            emit_byte(newval & 0b11111111);
+            emit_byte((newval >> 8) & 0b11111111);
+            emit_byte((newval >> 16) & 0b11111111);
+            emit_byte((newval >> 24) & 0b11111111);
+            break;
+        }
+        case 64: {
+            int64_t newval = (int64_t) value;
+            emit_byte(OP_I64);
+            if (!has_equals) {
+                emit_byte(0);
+                return;
+            }
+            emit_byte(newval & 0b11111111);
+            emit_byte((newval >> 8) & 0b11111111);
+            emit_byte((newval >> 16) & 0b11111111);
+            emit_byte((newval >> 24) & 0b11111111);
+            emit_byte((newval >> 32) & 0b11111111);
+            emit_byte((newval >> 40) & 0b11111111);
+            emit_byte((newval >> 48) & 0b11111111);
+            emit_byte((newval >> 56) & 0b11111111);
+            break;
+        }
+    }
+}
 
-//     const Token var_name = parse.prev; 
-    
-//     // emit_byte(OP_I??);
+// HAS i64 compatibility
+static void parse_int(uint8_t bits) {
+    next_token(); // consume type
 
-//     if (match_then_next(LEX_EQUAL)) {
-//         const int64_t value = strtoll(parse.prev.start, NULL, 10); // base 10 lol
-//         switch (bits) {
-//             case 8: {
-//                 int8_t newval = (int8_t) value;
-//                 // emit_byte()
-//             }
-//             case 16: return (int16_t) value;
-//             case 32: return (int32_t) value;
-//             case 64: return (int64_t) value;
-//         }
-//     } else {
-        
-//     }
+    if (!match_then_next(LEX_IDENTIFIER)) {
+        compile_err(&parse, "expected variable name identifier after type declaration");
+        return;
+    }
 
-//     finish(LEX_SEMICOLON, ";");
-//     emit_var_name(var_name);
-// }
+    const Token var_name = parse.prev;
+    const bool has_equals = match_then_next(LEX_EQUAL);
+    int64_t value = 0;
 
-// static void parse_float(uint8_t bits) {
-// }
+    if (has_equals) {
+        if (parse.cur.type != LEX_NUMBER) {
+            compile_err(&parse, "expected integer value after '='");
+            return;
+        }
+        next_token(); // moves to ;
+        value = strtoll(parse.prev.start, NULL, 10); // base 10 lol
+    }
+
+    emit_int(has_equals, bits, value);
+
+    finish(LEX_SEMICOLON, ";");
+    emit_var_name(var_name);
+}
+
+static void parse_float(uint8_t bits) {
+
+}
 
 // DATATYPE RECOGNITION
 static void var_declaration() {
@@ -390,25 +462,27 @@ static void var_declaration() {
             break;
         }
         case LEX_I8: {
-            // parse_int(8);
+            parse_int(8);
             break;
         }
         case LEX_I16:{
-            // parse_int(16);
+            parse_int(16);
             break;
         }
         case LEX_I32: {
-            // parse_int(32);
+            parse_int(32);
             break;
         }
         case LEX_I64: {
-            // parse_int(64);
+            parse_int(64);
             break;
         }
         case LEX_F32: {
+            // parse_float(32);
             break;
         }
         case LEX_F64: {
+            // parse_float(32);
             break;
         }
         case LEX_VAR: {

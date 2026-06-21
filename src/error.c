@@ -15,7 +15,7 @@ void lex_err(Parser* p) {
 void syntax_err(Parser* p, char* expected) {
     if (p->error) p->mult_error = true;
     
-    fprintf(stderr, "[line %d] syntax error: Expected '%s'\n", p->cur.line, expected);
+    fprintf(stderr, "[line %d] syntax error: expected '%s'\n", p->cur.line, expected);
 
     p->error = true;
 }

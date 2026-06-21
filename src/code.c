@@ -56,20 +56,43 @@ int add_constant(Code *code, Value val) {
   return code->constants.count - 1;
 }
 
+// TODO: implement i64 compatibility (another 32-bit value arr?) 
+// REFACTOR
 void write_constant(Code *code, Value val, int line) {
   int index = add_constant(code, val);
+  const uint8_t mask = 0b11111111;
 
-  if (index < 256) {
-    write_code(code, OP_CONSTANT, line);
+  if (index < 128) {
+    write_code(code, OP_I8, line);
+    
     write_code(code, index, line);
-  } else {
-    const int grab = 0b11111111;
-    write_code(code, OP_CONSTANT_LONG, line);
-    // write it in 24 bits = 3 bytes --> take the [...] [...] [...] accordingly
-    write_code(code, index & grab, line);
-    write_code(code, (index >> 8) & grab, line);
-    write_code(code, (index >> 16), line);
   }
+  else if (index < 65536) {
+    write_code(code, OP_I16, line);
+    
+    write_code(code, index, line);
+    write_code(code, (uint8_t) (index >> 8) & mask, line);
+  }
+  else {
+    write_code(code, OP_I32, line);
+
+    write_code(code, index, line);
+    write_code(code, (uint8_t) (index >> 8) & mask, line);
+    write_code(code, (uint8_t) (index >> 16) & mask, line);
+    write_code(code, (uint8_t) (index >> 24) & mask, line);
+  }
+  // won't work cuz index too small
+  // else {
+  //   write_code(code, OP_I64, line);
+  //   write_code(code, index, line);
+  //   write_code(code, (uint8_t) (index >> 8) & mask, line);
+  //   write_code(code, (uint8_t) (index >> 16) & mask, line);
+  //   write_code(code, (uint8_t) (index >> 24) & mask, line);
+  //   write_code(code, (uint8_t) (index >> 32) & mask, line);
+  //   write_code(code, (uint8_t) (index >> 40) & mask, line);
+  //   write_code(code, (uint8_t) (index >> 48) & mask, line);
+  //   write_code(code, (uint8_t) (index >> 56) & mask, line);
+  // }
 }
 
 void free_code(Code *code) {

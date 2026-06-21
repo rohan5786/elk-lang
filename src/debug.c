@@ -58,10 +58,14 @@ int disassemble_instruction(Code* code, int index) {
   switch (instruction) {
     case OP_VECTOR:
       return print_vector("VECTOR", index, line);
-    case OP_CONSTANT_LONG:
-      return print_constant_long("CONSTANT_LONG", code, index, line);
-    case OP_CONSTANT:
-      return print_constant("CONSTANT", code, index, line);
+    case OP_I8:
+      // return print_constant("I8", code, index, line);
+    case OP_I16:
+      // return print_constant("I16", code, index, line);
+    case OP_I32:
+      // return print_constant("I32", code, index, line);
+    case OP_I64:
+      // return print_constant("I64", code, index, line);
     case OP_ADD:
       return print_instruction("ADD", index, line);
     case OP_SUB:

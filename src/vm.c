@@ -46,7 +46,6 @@ void free_vm() { free(vm.stack); }
  */
 static Result run() {
 #define NEXT_BYTE() (*vm.instruction_ptr++)
-#define NEXT_CONST() (vm.code->constants.values[NEXT_BYTE()])
 // while(0) stuff is because of if/else ; termination on a {} function
 // (elif/else never reached) ptr logic makes this faster because less movement
 // of vm.top
@@ -108,14 +107,46 @@ static Result run() {
         push(VEC_VAL((struct Vector*)(vec)));
         break;
       }
-      case OP_CONSTANT_LONG: {
-        const int const_index =
-            NEXT_BYTE() | (NEXT_BYTE() << 8) | (NEXT_BYTE() << 16);
-        push(vm.code->constants.values[const_index]);
+      case OP_I8: {
+        int8_t value = NEXT_BYTE();
+        
+        push(NUM_VAL((double) (value)));
         break;
       }
-      case OP_CONSTANT: {
-        push(NEXT_CONST());
+      case OP_I16: {
+        uint16_t b0 = NEXT_BYTE();
+        uint16_t b1 = NEXT_BYTE();
+
+        int16_t value = b0 | (b1 << 8);
+
+        push(NUM_VAL((double) (value)));
+        break;
+      }
+      case OP_I32: {
+        uint32_t b0 = NEXT_BYTE();
+        uint32_t b1 = NEXT_BYTE();        
+        uint32_t b2 = NEXT_BYTE();
+        uint32_t b3 = NEXT_BYTE();
+        
+        int32_t value = b0 | (b1 << 8) | (b2 << 16) | (b3 << 24);
+
+        push(NUM_VAL((double) (value)));
+        break;
+      }
+      case OP_I64: {
+        uint64_t b0 = NEXT_BYTE();
+        uint64_t b1 = NEXT_BYTE();        
+        uint64_t b2 = NEXT_BYTE();
+        uint64_t b3 = NEXT_BYTE();
+        uint64_t b4 = NEXT_BYTE();
+        uint64_t b5 = NEXT_BYTE();
+        uint64_t b6 = NEXT_BYTE();
+        uint64_t b7 = NEXT_BYTE();
+
+        int64_t value = b0 | (b1 << 8) | (b2 << 16) | (b3 << 24) | 
+          (b4 << 32) | (b5 << 40) | (b6 << 48) | (b7 << 56);
+        
+        push(NUM_VAL((double) (value)));
         break;
       }
       case OP_ADD: {
@@ -212,7 +243,6 @@ static Result run() {
   }
 
 #undef NEXT_BYTE
-#undef NEXT_CONST
 #undef BINARY_OP
 #undef SINGLE_COMPARE
 #undef MULT_COMPARE

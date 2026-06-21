@@ -12,8 +12,10 @@
 typedef enum {
     // Values.
     OP_VECTOR,
-    OP_CONSTANT_LONG,
-    OP_CONSTANT,
+    OP_I8,
+    OP_I16,
+    OP_I32,
+    OP_I64,
     // Binary ops.
     OP_ADD,
     OP_SUB,
