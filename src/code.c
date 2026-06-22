@@ -56,7 +56,6 @@ int add_constant(Code *code, Value val) {
   return code->constants.count - 1;
 }
 
-// TODO: implement i64 compatibility (another 32-bit value arr?) 
 // REFACTOR
 void write_constant(Code *code, Value val, int line) {
   int index = add_constant(code, val);
@@ -64,7 +63,7 @@ void write_constant(Code *code, Value val, int line) {
 
   if (index < 128) {
     write_code(code, OP_I8, line);
-    
+
     write_code(code, index, line);
   }
   else if (index < 65536) {

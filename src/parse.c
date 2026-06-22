@@ -58,6 +58,7 @@ static void emit_byte(uint8_t byte) {
     write_code(cur_code(), byte, parse.prev.line);
 }
 
+// TODO: Map names
 static void emit_var_name(Token name) {
     char* name_str = (char*) malloc(name.length + 1);
     memcpy(name_str, name.start, name.length + 1);
@@ -65,12 +66,11 @@ static void emit_var_name(Token name) {
     // put this in the name map
 }
 
-// TODO: implement i64 compatibility
 static void emit_num(int bit_num) {
-    const double value = strtod(parse.prev.start, NULL);
     switch (bit_num) {
         case 0:
         case 1: {
+            const double value = strtod(parse.prev.start, NULL);
             emit_float(bit_num, value);
             break;
         }
@@ -78,10 +78,14 @@ static void emit_num(int bit_num) {
         case 16:
         case 32:
         case 64: {
+            const int64_t value = strtod(parse.prev.start, NULL);
             emit_int(true, bit_num, (int64_t) (value));
             break;
         }
-        default: emit_float(0, value);
+        default: {
+            const double value = strtod(parse.prev.start, NULL);
+            emit_float(0, value);
+        }
     }
     // FOR NOW; TEMP
     // write_constant(
@@ -585,8 +589,8 @@ static void var_declaration() {
 
 
 // TOOD: implement var name mapping
-// ---> after mapping, implement datatype syntax parsing
-// ---> after parsing datatypes, many large scale tests 
+// ---> after mapping, do larger scale tests
+// ---> after tests, loops, then functions!
 
 static void statement() {
     if (match_datatype_peek()) 
