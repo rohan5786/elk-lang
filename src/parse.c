@@ -15,12 +15,15 @@
 Parser parse;
 Code* compiling_code;
 
-static void mult_comparison();
-static void single_comparison();
-static void arithmetic();
-static void commutative();
-static void negate();
-static void raw_and_parentheses();
+static void emit_int(const bool has_equals, int bits, int64_t value);
+static void emit_float(int bits, double value);
+
+static void mult_comparison(int bit_num);
+static void single_comparison(int bit_num);
+static void arithmetic(int bit_num);
+static void commutative(int bit_num);
+static void negate(int bit_num);
+static void raw_and_parentheses(int bit_num);
 
 static void statement();
 
@@ -63,12 +66,28 @@ static void emit_var_name(Token name) {
 }
 
 // TODO: implement i64 compatibility
-static void emit_num() {
-    double val = strtod(parse.prev.start, NULL);
-    write_constant(
-        compiling_code, NUM_VAL(val), 
-        parse.prev.line
-    );
+static void emit_num(int bit_num) {
+    const double value = strtod(parse.prev.start, NULL);
+    switch (bit_num) {
+        case 0:
+        case 1: {
+            emit_float(bit_num, value);
+            break;
+        }
+        case 8:
+        case 16:
+        case 32:
+        case 64: {
+            emit_int(true, bit_num, (int64_t) (value));
+            break;
+        }
+        default: emit_float(0, value);
+    }
+    // FOR NOW; TEMP
+    // write_constant(
+    //     compiling_code, NUM_VAL(val), 
+    //     parse.prev.line
+    // );
 }
 
 static void emit_vector(uint16_t total) {
@@ -165,7 +184,38 @@ static void vector_literal(LexType inner_type) {
 
                 // get to innermost vector, then do arithmetic
                 if (inner_type == LEX_VECTOR) vector_literal(get_vector_base_type(inner_type));
-                else mult_comparison();
+                else {
+                    switch (inner_type) {
+                        case LEX_I8: {
+                            mult_comparison(8);
+                            break;
+                        }
+                        case LEX_I16: {
+                            mult_comparison(16);
+                            break;
+                        }
+                        case LEX_I32: {
+                            mult_comparison(32);
+                            break;
+                        }
+                        case LEX_I64: {
+                            mult_comparison(64);
+                            break;
+                        }
+                        case LEX_F32: {
+                            mult_comparison(0);
+                            break;
+                        }
+                        case LEX_F64: {
+                            mult_comparison(1);
+                            break;
+                        }
+                        default: {
+                            mult_comparison(-1);
+                            break;
+                        }
+                    }
+                }
 
                 total++;
                 if (total > 65535) {
@@ -180,9 +230,10 @@ static void vector_literal(LexType inner_type) {
 }
 
 // NUMBERS, LITERALS, PARENTHESES
-static void raw_and_parentheses() {
+// -1 = default to f32, 0 = f32, 1 = f64, 8 = i8, 16 = i16, 32 = i32, 64 = i64
+static void raw_and_parentheses(int bit_num) {
     if (match_then_next(LEX_NUMBER)) {
-        emit_num();
+        emit_num(bit_num);
         return;
     }
 
@@ -194,65 +245,65 @@ static void raw_and_parentheses() {
     }
 
     if (match_then_next(LEX_LEFT_PAREN)) {
-        arithmetic();  // restart
+        arithmetic(bit_num);  // restart
         finish(LEX_RIGHT_PAREN, ")");
     }
 }
 
 // NEGATE -> symbol, then number in syntax (e.g. var x = - (-5);)
-static void negate() {
+static void negate(int bit_num) {
     if (match_then_next(LEX_MINUS)) {
-        negate();
+        negate(bit_num);
         emit_byte(OP_NEGATE);
         return;
     }
-    raw_and_parentheses();
+    raw_and_parentheses(bit_num);
 }
 
 // MULT/DIV
-static void commutative() {
-    negate();
+static void commutative(int bit_num) {
+    negate(bit_num);
 
     while (match_then_next(LEX_STAR) || match_then_next(LEX_SLASH)) {
         LexType op = parse.prev.type;  // getting what it was
-        negate();
+        negate(bit_num);
         emit_byte(lextype_to_opcode(op));
     }
 }
 
 // ADD/SUB
-static void arithmetic() {
-    commutative();
+static void arithmetic(int bit_num) {
+    commutative(bit_num);
 
     // while loop essentially checks thru multiple number operations like a + b +
     // c in a row
     while (match_then_next(LEX_PLUS) || match_then_next(LEX_MINUS)) {
         LexType op = parse.prev.type;  // getting what it was
-        commutative();
+        commutative(bit_num);
         emit_byte(lextype_to_opcode(op));
     }
 }
 
 // new lowest precedence
-static void single_comparison() {
-    arithmetic();
+static void single_comparison(int bit_num) {
+    arithmetic(bit_num);
 
     while (match_then_next(LEX_LESS) || match_then_next(LEX_LESS_EQUAL) ||
             match_then_next(LEX_BANG_EQUAL) || match_then_next(LEX_EQUAL_EQUAL) ||
             match_then_next(LEX_GREATER) || match_then_next(LEX_GREATER_EQUAL)) {
     LexType op = parse.prev.type;
-    arithmetic();
+    arithmetic(bit_num);
     emit_byte(lextype_to_opcode(op));
     }
 }
 
-static void mult_comparison() {
-    single_comparison();
+static void mult_comparison(int bit_num) {
+    single_comparison(bit_num);
 
     while (match_then_next(LEX_AND_AND) || match_then_next(LEX_OR_OR) ||
             match_then_next(LEX_XOR)) {
         LexType op = parse.prev.type;
-        single_comparison();
+        single_comparison(bit_num);
         emit_byte(lextype_to_opcode(op));
     }
 }
@@ -282,7 +333,7 @@ static void update_jump_size(int offset_index) {
 // if ( 1.0 or 0.0 eval ) { ... }
 static void if_statement() {
   finish(LEX_LEFT_PAREN, "(");
-  mult_comparison();
+  mult_comparison(-1);
   finish(LEX_RIGHT_PAREN, ")");
 
   int if_offset_index = emit_jump(OP_FALSE_JMP);
@@ -438,18 +489,59 @@ static void parse_int(uint8_t bits) {
             compile_err(&parse, "expected integer value after '='");
             return;
         }
-        next_token(); // moves to ;
-        value = strtoll(parse.prev.start, NULL, 10); // base 10 lol
+        mult_comparison(bits);
+        // next_token(); // moves to ;
+        // value = strtoll(parse.prev.start, NULL, 10); // base 10 lol
     }
 
-    emit_int(has_equals, bits, value);
+    // emit_int(has_equals, bits, value);
 
     finish(LEX_SEMICOLON, ";");
     emit_var_name(var_name);
 }
 
-static void parse_float(uint8_t bits) {
+// f32 is 0 default
+static void emit_float(int bit_num, double value) {
+    if (!bit_num) {
+        float fval = (float) value;
+        union { float val; uint32_t bits; } cast;
+        cast.val = fval;
+        emit_byte(OP_F32);
+        for (int i = 0; i < 32; i += 8) emit_byte((cast.bits >> i) & 0b11111111);
+    } else {
+        union { double val; uint64_t bits; } cast;
+        cast.val = value;
+        emit_byte(OP_F64);
+        for (int i = 0; i < 64; i += 8) emit_byte((cast.bits >> i) & 0b11111111);
+    }    
+}
 
+static void parse_float(uint8_t bits) {
+    next_token(); // consume type
+
+    if (!match_then_next(LEX_IDENTIFIER)) {
+        compile_err(&parse, "expected variable name identifier after type declaration");
+        return;
+    }
+
+    const Token var_name = parse.prev;
+    const bool has_equals = match_then_next(LEX_EQUAL);
+
+    if (has_equals) {
+        if (parse.cur.type != LEX_NUMBER) {
+            compile_err(&parse, "expected floating point value after '='");
+            return;
+        }
+        mult_comparison(bits);
+        // next_token();
+        // const double value = strtod(parse.prev.start, NULL);
+        // emit_float((bits != 32), value);
+    }
+    else mult_comparison(-1);
+    // else emit_float(0, 0); // 32 bit default
+
+    finish(LEX_SEMICOLON, ";");
+    emit_var_name(var_name);
 }
 
 // DATATYPE RECOGNITION
@@ -478,11 +570,11 @@ static void var_declaration() {
             break;
         }
         case LEX_F32: {
-            // parse_float(32);
+            parse_float(0);
             break;
         }
         case LEX_F64: {
-            // parse_float(32);
+            parse_float(1);
             break;
         }
         case LEX_VAR: {
@@ -502,7 +594,7 @@ static void statement() {
     else if (match_then_next(LEX_IF)) 
         if_statement();
     else {
-        mult_comparison();
+        mult_comparison(-1);
         finish(LEX_SEMICOLON, ";");
     }
 }

@@ -109,7 +109,7 @@ static Result run() {
       }
       case OP_I8: {
         int8_t value = NEXT_BYTE();
-        
+
         push(NUM_VAL((double) (value)));
         break;
       }
@@ -146,6 +146,35 @@ static Result run() {
         int64_t value = b0 | (b1 << 8) | (b2 << 16) | (b3 << 24) | 
           (b4 << 32) | (b5 << 40) | (b6 << 48) | (b7 << 56);
         
+        push(NUM_VAL((double) (value)));
+        break;
+      }
+      case OP_F32: {
+        uint32_t b0 = NEXT_BYTE();
+        uint32_t b1 = NEXT_BYTE();
+        uint32_t b2 = NEXT_BYTE();
+        uint32_t b3 = NEXT_BYTE();
+
+        const uint32_t bits = b0 | (b1 << 8) | (b2 << 16) | (b3 << 24); 
+        float value = * (float*) (&bits);
+
+        push(NUM_VAL((double) (value)));
+        break;
+      }
+      case OP_F64: {
+        uint64_t b0 = NEXT_BYTE();
+        uint64_t b1 = NEXT_BYTE();
+        uint64_t b2 = NEXT_BYTE();
+        uint64_t b3 = NEXT_BYTE();
+        uint64_t b4 = NEXT_BYTE();
+        uint64_t b5 = NEXT_BYTE();
+        uint64_t b6 = NEXT_BYTE();
+        uint64_t b7 = NEXT_BYTE();
+
+        const uint64_t bits = b0 | (b1 << 8) | (b2 << 16) | (b3 << 24) | 
+          (b4 << 32) | (b5 << 40) | (b6 << 48) | (b7 << 56);
+        double value = * (double*) (&bits);
+
         push(NUM_VAL((double) (value)));
         break;
       }

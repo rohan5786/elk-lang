@@ -16,6 +16,8 @@ typedef enum {
     OP_I16,
     OP_I32,
     OP_I64,
+    OP_F32,
+    OP_F64,
     // Binary ops.
     OP_ADD,
     OP_SUB,
