@@ -70,6 +70,8 @@ int disassemble_instruction(Code* code, int index) {
       // return print_constant("F32", code, index, line);
     case OP_F64: return index + 9;
       // return print_constant("F64", code, index, line);
+    case OP_STR:
+      // return wtf
     case OP_ADD:
       return print_instruction("ADD", index, line);
     case OP_SUB:

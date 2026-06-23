@@ -178,6 +178,10 @@ static Result run() {
         push(NUM_VAL((double) (value)));
         break;
       }
+      case OP_STR: {
+        //
+        break;
+      }
       case OP_ADD: {
         BINARY_OP(+);
         break;

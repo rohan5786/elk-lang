@@ -66,11 +66,11 @@ static void emit_var_name(Token name) {
     // put this in the name map
 }
 
-static void emit_num(int bit_num) {
+static void emit_num(const bool zilch, int bit_num) {
     switch (bit_num) {
         case 0:
         case 1: {
-            const double value = strtod(parse.prev.start, NULL);
+            const double value = zilch ? 0 : strtod(parse.prev.start, NULL);
             emit_float(bit_num, value);
             break;
         }
@@ -78,12 +78,12 @@ static void emit_num(int bit_num) {
         case 16:
         case 32:
         case 64: {
-            const int64_t value = strtod(parse.prev.start, NULL);
+            const int64_t value = zilch ? 0 : strtod(parse.prev.start, NULL);
             emit_int(true, bit_num, (int64_t) (value));
             break;
         }
         default: {
-            const double value = strtod(parse.prev.start, NULL);
+            const double value = zilch ? 0 : strtod(parse.prev.start, NULL);
             emit_float(0, value);
         }
     }
@@ -236,8 +236,8 @@ static void vector_literal(LexType inner_type) {
 // NUMBERS, LITERALS, PARENTHESES
 // -1 = default to f32, 0 = f32, 1 = f64, 8 = i8, 16 = i16, 32 = i32, 64 = i64
 static void raw_and_parentheses(int bit_num) {
-    if (match_then_next(LEX_NUMBER)) {
-        emit_num(bit_num);
+    if (match_then_next(LEX_NUMBER) || match_then_next(LEX_ZILCH)) {
+        emit_num(parse.prev.type == LEX_ZILCH, bit_num);
         return;
     }
 
@@ -370,14 +370,14 @@ static void if_statement() {
 
 // including LEX_VAR
 static int match_datatype_peek() {
-    for (int i = 34; i < 44; i++)
+    for (int i = 35; i < 44; i++)
         if (parse.cur.type == i) return 1;
     return 0;
 }
 
 // [35, 42] for lextype enum (no LEX_VAR)
 static int match_datatype_then_next() {
-    for (int i = 35; i < 44; i++)
+    for (int i = 36; i < 44; i++)
         if (match_then_next(i)) return 1;
     return 0;
 }
@@ -489,7 +489,7 @@ static void parse_int(uint8_t bits) {
     int64_t value = 0;
 
     if (has_equals) {
-        if (parse.cur.type != LEX_NUMBER) {
+        if (parse.cur.type != LEX_NUMBER && parse.cur.type != LEX_ZILCH) {
             compile_err(&parse, "expected integer value after '='");
             return;
         }
@@ -529,10 +529,9 @@ static void parse_float(uint8_t bits) {
     }
 
     const Token var_name = parse.prev;
-    const bool has_equals = match_then_next(LEX_EQUAL);
 
-    if (has_equals) {
-        if (parse.cur.type != LEX_NUMBER) {
+    if (match_then_next(LEX_EQUAL)) {
+        if (parse.cur.type != LEX_NUMBER && parse.cur.type != LEX_ZILCH) {
             compile_err(&parse, "expected floating point value after '='");
             return;
         }
@@ -546,6 +545,27 @@ static void parse_float(uint8_t bits) {
 
     finish(LEX_SEMICOLON, ";");
     emit_var_name(var_name);
+}
+
+// TODO: figure out parsing strings
+static void parse_str() {
+    next_token(); // consume type
+
+    if (!match_then_next(LEX_IDENTIFIER)) {
+        compile_err(&parse, "expected variable name identifier after type declaration");
+        return;
+    }
+
+    const Token var_name = parse.prev;
+
+    // if (match_then_next(LEX_EQUAL)) {
+
+    // } else {
+    //     emit_byte(OP_STR);
+    // }
+
+    finish(LEX_SEMICOLON, ";");
+    emit_var_name(parse.prev);
 }
 
 // DATATYPE RECOGNITION
@@ -579,6 +599,10 @@ static void var_declaration() {
         }
         case LEX_F64: {
             parse_float(1);
+            break;
+        }
+        case LEX_STR: {
+            parse_str();
             break;
         }
         case LEX_VAR: {
