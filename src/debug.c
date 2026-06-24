@@ -56,6 +56,14 @@ int disassemble_instruction(Code* code, int index) {
 
   const int line = get_line(code, index);
   switch (instruction) {
+    case OP_GET_LOCAL: {
+      print_instruction("GET_LOCAL", index, line); 
+      return index + 3;
+    }
+    case OP_SET_LOCAL: {
+      print_instruction("SET_LOCAL", index, line);
+      return index + 3;
+    }
     case OP_VECTOR:
       return print_vector("VECTOR", index, line);
     case OP_I8: return index + 2;

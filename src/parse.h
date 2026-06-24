@@ -3,13 +3,19 @@
 
 #include "vm.h"
 #include "lex.h"
+#include "table.h"
+
 #include <stdbool.h>
 
-typedef struct {
+struct VarTable;
+
+typedef struct Parser {
     Token cur;
     Token prev;
-    bool mult_error;
     bool error;
+
+    struct VarTable* cur_scope;
+    int local_vm_count; // tokens
 } Parser;
 
 void init_parser();

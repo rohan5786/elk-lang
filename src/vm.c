@@ -93,6 +93,17 @@ static Result run() {
 #endif
     uint8_t cur_instruction;
     switch (cur_instruction = NEXT_BYTE()) {
+      // TODO: change indeces to adapt or just be big enough
+      case OP_GET_LOCAL: {
+        uint16_t vm_stack_index = NEXT_BYTE() | (NEXT_BYTE() << 8); // change eventually
+        push(vm.stack[vm_stack_index]);  // re-getting it
+        break;
+      }
+      case OP_SET_LOCAL: {
+        uint16_t vm_stack_index = NEXT_BYTE() | (NEXT_BYTE() << 8); // change eventually
+        vm.stack[vm_stack_index] = *(vm.top - 1);
+        break;
+      }
       case OP_VECTOR: {
         // build YOUR VECTOR!
         uint16_t vec_size = NEXT_BYTE() | (NEXT_BYTE() << 8);
@@ -101,8 +112,7 @@ static Result run() {
         vec->capacity = vec_size;
         vec->count = vec_size;
         vec->items = malloc(sizeof(Vector) * vec_size);
-        for (int i = vec_size - 1; i >= 0; i--)
-          vec->items[i] = pop();
+        for (int i = vec_size - 1; i >= 0; i--) vec->items[i] = pop();
 
         push(VEC_VAL((struct Vector*)(vec)));
         break;
@@ -110,7 +120,7 @@ static Result run() {
       case OP_I8: {
         int8_t value = NEXT_BYTE();
 
-        push(NUM_VAL((double) (value)));
+        push(NUM_VAL((double)(value)));
         break;
       }
       case OP_I16: {
@@ -119,23 +129,23 @@ static Result run() {
 
         int16_t value = b0 | (b1 << 8);
 
-        push(NUM_VAL((double) (value)));
+        push(NUM_VAL((double)(value)));
         break;
       }
       case OP_I32: {
         uint32_t b0 = NEXT_BYTE();
-        uint32_t b1 = NEXT_BYTE();        
+        uint32_t b1 = NEXT_BYTE();
         uint32_t b2 = NEXT_BYTE();
         uint32_t b3 = NEXT_BYTE();
-        
+
         int32_t value = b0 | (b1 << 8) | (b2 << 16) | (b3 << 24);
 
-        push(NUM_VAL((double) (value)));
+        push(NUM_VAL((double)(value)));
         break;
       }
       case OP_I64: {
         uint64_t b0 = NEXT_BYTE();
-        uint64_t b1 = NEXT_BYTE();        
+        uint64_t b1 = NEXT_BYTE();
         uint64_t b2 = NEXT_BYTE();
         uint64_t b3 = NEXT_BYTE();
         uint64_t b4 = NEXT_BYTE();
@@ -143,10 +153,10 @@ static Result run() {
         uint64_t b6 = NEXT_BYTE();
         uint64_t b7 = NEXT_BYTE();
 
-        int64_t value = b0 | (b1 << 8) | (b2 << 16) | (b3 << 24) | 
-          (b4 << 32) | (b5 << 40) | (b6 << 48) | (b7 << 56);
-        
-        push(NUM_VAL((double) (value)));
+        int64_t value = b0 | (b1 << 8) | (b2 << 16) | (b3 << 24) | (b4 << 32) |
+                        (b5 << 40) | (b6 << 48) | (b7 << 56);
+
+        push(NUM_VAL((double)(value)));
         break;
       }
       case OP_F32: {
@@ -155,10 +165,10 @@ static Result run() {
         uint32_t b2 = NEXT_BYTE();
         uint32_t b3 = NEXT_BYTE();
 
-        const uint32_t bits = b0 | (b1 << 8) | (b2 << 16) | (b3 << 24); 
-        float value = * (float*) (&bits);
+        const uint32_t bits = b0 | (b1 << 8) | (b2 << 16) | (b3 << 24);
+        float value = *(float*)(&bits);
 
-        push(NUM_VAL((double) (value)));
+        push(NUM_VAL((double)(value)));
         break;
       }
       case OP_F64: {
@@ -171,11 +181,11 @@ static Result run() {
         uint64_t b6 = NEXT_BYTE();
         uint64_t b7 = NEXT_BYTE();
 
-        const uint64_t bits = b0 | (b1 << 8) | (b2 << 16) | (b3 << 24) | 
-          (b4 << 32) | (b5 << 40) | (b6 << 48) | (b7 << 56);
-        double value = * (double*) (&bits);
+        const uint64_t bits = b0 | (b1 << 8) | (b2 << 16) | (b3 << 24) |
+                              (b4 << 32) | (b5 << 40) | (b6 << 48) | (b7 << 56);
+        double value = *(double*)(&bits);
 
-        push(NUM_VAL((double) (value)));
+        push(NUM_VAL((double)(value)));
         break;
       }
       case OP_STR: {
