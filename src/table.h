@@ -18,7 +18,7 @@ typedef struct {
     const char* key;
     int length;
     VarType type;
-    int bit_num; // if int
+    int bit_num;
     int vm_stack_slot;
 } VarEntry;
 

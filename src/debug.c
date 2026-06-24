@@ -43,7 +43,7 @@ int print_constant_long(const char* to_print, Code* code, int index, int line) {
   return index + 4;
 }
 
-// TODO: FIX THIS 
+// TODO: FIX THIS PRINTING BS 
 int print_vector(const char* to_print, int index, int line) {
   printf("%s    %d\n", to_print, line);
   return index + 3;

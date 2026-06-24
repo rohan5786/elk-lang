@@ -95,6 +95,14 @@ static void emit_vector(uint16_t total) {
   emit_byte((total >> 8) & 0b11111111);
 }
 
+static void emit_str(int length) {
+    emit_byte(OP_STR);
+    for (int i = 0; i < 32; i += 8)
+        emit_byte((length >> i) & 0b11111111);
+    for (int i = 0; i < length; i++)
+        emit_byte((uint8_t) parse.prev.start[i]); // unsigned!
+}
+
 static void end_compile() {
   emit_byte(OP_RETURN);
 #ifdef DEBUG_PRINT_CODE
@@ -233,6 +241,7 @@ static void vector_literal(LexType inner_type) {
   }
 }
 
+
 // NUMBERS, LITERALS, PARENTHESES
 // -1 = default to f32, 0 = f32, 1 = f64, 8 = i8, 16 = i16, 32 = i32, 64 = i64
 static void raw_and_parentheses(int bit_num) {
@@ -254,6 +263,11 @@ static void raw_and_parentheses(int bit_num) {
     emit_byte(OP_GET_LOCAL);
     emit_byte((uint8_t)(entry->vm_stack_slot & 0b11111111));
     emit_byte((uint8_t)((entry->vm_stack_slot >> 8) & 0b11111111));
+    return;
+  }
+
+  if (match_then_next(LEX_STRING)) {
+    emit_str(parse.prev.length);
     return;
   }
 
@@ -639,7 +653,6 @@ static void parse_float(uint8_t bits) {
   parse.local_vm_count++;
 }
 
-// TODO: figure out parsing strings
 static void parse_str() {
   next_token();  // consume type
 
@@ -650,13 +663,32 @@ static void parse_str() {
 
   const Token var_name = parse.prev;
 
-  // if (match_then_next(LEX_EQUAL)) {
-
-  // } else {
-  //     emit_byte(OP_STR);
-  // }
-
+  if (match_then_next(LEX_EQUAL)) {
+    if (!match_then_next(LEX_STRING)) {
+        compile_err(&parse, "expected string literal after '='");
+        return;
+    }
+    emit_str(parse.prev.length);
+  } else emit_str(0);
   finish(LEX_SEMICOLON, ";");
+
+  int result = insert_table(parse.cur_scope, H_STR, -1, var_name.start, var_name.length, parse.local_vm_count);
+  if (result < 0) {
+    compile_err(&parse, "vartable full");
+    return;
+  } else if (result > 0) {
+    char* str = malloc(var_name.length + 1);
+    memcpy(str, var_name.start, var_name.length + 1);
+    str[var_name.length] = '\0';
+    fprintf(stderr,
+            "[line %d] compile-time error: redeclaration of variable '%s' in "
+            "local scope",
+            parse.cur.line, str);
+    parse.error = true;
+    return;
+  }
+
+  parse.local_vm_count++;
 }
 
 // DATATYPE RECOGNITION
@@ -725,7 +757,7 @@ static void expression() {
     mult_comparison(-1);
 }
 
-// TODO: implement str mapping and vector mapping syntax analysis
+// TODO: implement vector mapping and var parsing + mapping syntax analysis
 // ---> after fully mapping, do larger scale tests
 // ---> after tests; loops, then functions!
 static void statement() {

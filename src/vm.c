@@ -189,7 +189,15 @@ static Result run() {
         break;
       }
       case OP_STR: {
-        //
+        uint32_t str_len = NEXT_BYTE() | (NEXT_BYTE() << 8) | (NEXT_BYTE() << 16) | (NEXT_BYTE() << 24);
+        char* str = malloc(str_len + 1);
+        for (int i = 0; i < str_len; i++) {
+          const unsigned char ch = NEXT_BYTE();
+          str[i] = ch; // unsigned char
+        }
+        str[str_len] = '\0';
+
+        push(STR_VAL(str));
         break;
       }
       case OP_ADD: {

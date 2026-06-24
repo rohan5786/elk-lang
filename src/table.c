@@ -54,7 +54,7 @@ int insert_table(VarTable* table, VarType type, int bit_num, const char* key, in
             VarEntry* cur_entry = &cur_layer->entries[cur_index];
             if (cur_entry->length == length && !memcmp(cur_entry->key, key, length)) return 1;
 
-            if (++probes > 4 && i < 2) break;
+            if (++probes > 8 && i < 2) break;
 
             cur_index = (cur_index + 1) % cur_layer->capacity;
         }
