@@ -1,2 +1,3 @@
-str x = "hello!";
-x = "goodbye!";
+
+str x = "L";
+x[0] = "W";

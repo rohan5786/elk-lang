@@ -13,6 +13,7 @@ typedef enum {
   // Values.
   OP_GET_LOCAL,
   OP_SET_LOCAL,
+  OP_SET_INDEX,
   OP_VECTOR,
   OP_I8,
   OP_I16,

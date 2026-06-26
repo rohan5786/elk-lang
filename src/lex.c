@@ -171,6 +171,10 @@ Token scan_token() {
       return make_token(LEX_LEFT_BRACE);
     case '}':
       return make_token(LEX_RIGHT_BRACE);
+    case '[':
+      return make_token(LEX_LEFT_BRACKET);
+    case ']':
+      return make_token(LEX_RIGHT_BRACKET);
     case ';':
       return make_token(LEX_SEMICOLON);
     case ',':
@@ -205,7 +209,7 @@ Token scan_token() {
       return make_token(LEX_PERCENT);
   }
 
-  char err_msg[] = "unrecognizable token at '_'\0";
+  char err_msg[] = "unrecognizable token at '_'";
   err_msg[25] = c;
   return error_token(err_msg);
 }

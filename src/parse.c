@@ -54,6 +54,7 @@ static void finish(LexType type, char* msg) {
   }
 
   syntax_err(&parse, msg);
+  next_token(); // DEBUG
 }
 
 static void emit_byte(uint8_t byte) {
@@ -245,19 +246,18 @@ static void vector_literal(LexType inner_type) {
 // NUMBERS, LITERALS, PARENTHESES
 // -1 = default to f32, 0 = f32, 1 = f64, 8 = i8, 16 = i16, 32 = i32, 64 = i64
 static void raw_and_parentheses(int bit_num) {
-  if (match_then_next(LEX_NUMBER) || match_then_next(LEX_ZILCH)) {
+  if (match_then_next(LEX_NUMBER) ^ match_then_next(LEX_ZILCH)) {
     emit_num(parse.prev.type == LEX_ZILCH, bit_num);
     return;
   }
 
   if (match_then_next(LEX_IDENTIFIER)) {
     const Token var_token = parse.prev;
-    VarEntry* entry =
-        lookup_table(parse.cur_scope, var_token.start, var_token.length);
+    const VarEntry* entry = lookup_table(parse.cur_scope, var_token.start, var_token.length);
 
     if (entry == NULL) {
-      compile_err(&parse, "undefined variable identifier name in this scope");
-      return;
+        compile_err(&parse, "undefined variable identifier name in this scope");
+        return;
     }
 
     emit_byte(OP_GET_LOCAL);
@@ -415,14 +415,14 @@ static void if_statement() {
 
 // including LEX_VAR
 static int match_datatype_peek() {
-  for (int i = 35; i < 44; i++)
+  for (int i = 37; i < 46; i++)
     if (parse.cur.type == i) return 1;
   return 0;
 }
 
-// [35, 42] for lextype enum (no LEX_VAR)
+// [38, 45] for lextype enum (no LEX_VAR)
 static int match_datatype_then_next() {
-  for (int i = 36; i < 44; i++)
+  for (int i = 38; i < 46; i++)
     if (match_then_next(i)) return 1;
   return 0;
 }
@@ -436,8 +436,7 @@ static void parse_vector() {
     return;
   }
   if (!match_datatype_then_next()) {
-    compile_err(&parse,
-                "expected statically typed inner datatype for type 'vector'");
+    compile_err(&parse, "expected statically typed inner datatype for type 'vector'");
     return;
   }
 
@@ -448,8 +447,7 @@ static void parse_vector() {
     return;
   }
   if (!match_then_next(LEX_IDENTIFIER)) {
-    compile_err(&parse,
-                "expected variable name identifier after type declaration");
+    compile_err(&parse, "expected variable name identifier after type declaration");
     return;
   }
   // everything well so far
@@ -693,7 +691,7 @@ static void parse_str() {
 
 // DATATYPE RECOGNITION
 static void var_declaration() {
-  LexType var_type = parse.cur.type;
+    LexType var_type = parse.cur.type;
 
   switch (var_type) {
     case LEX_VECTOR: {
@@ -734,42 +732,79 @@ static void var_declaration() {
   }
 }
 
-static void expression() {
-    if (match_then_next(LEX_IDENTIFIER)) {
-        if (parse.cur.type == LEX_EQUAL) {
-            const Token var_token = parse.prev;
-            next_token();
-            VarEntry* entry = lookup_table(parse.cur_scope, var_token.start, var_token.length);
+// assignment functions
+static void var_assignment(const VarEntry* entry) {
+    if (match_then_next(LEX_EQUAL)) {
+        mult_comparison(entry->bit_num);
 
-            if (entry == NULL) {
-                compile_err(&parse, "undefined variable identifier name in this scope");
-                return;
-            }
-
-            mult_comparison(entry->bit_num);
-
-            emit_byte(OP_SET_LOCAL);
-            emit_byte((uint8_t)(entry->vm_stack_slot & 0b11111111));
-            emit_byte((uint8_t)((entry->vm_stack_slot >> 8) & 0b11111111));
-            return;
-        }
+        emit_byte(OP_SET_LOCAL);
+        emit_byte((uint8_t)(entry->vm_stack_slot & 0b11111111));
+        emit_byte((uint8_t)((entry->vm_stack_slot >> 8) & 0b11111111));
+        return;
     }
-    mult_comparison(-1);
+    compile_warn(&parse, "statement with no effect");
 }
 
-// TODO: implement vector mapping and var parsing + mapping syntax analysis
-// ---> after fully mapping, do larger scale tests
+static void vec_or_str_assignment(const VarEntry* entry) {
+    // whole new vector/str
+    if (match_then_next(LEX_EQUAL)) {
+        mult_comparison(-1); // (entry->bit_num)
+
+        emit_byte(OP_SET_LOCAL);
+        emit_byte((uint8_t)(entry->vm_stack_slot & 0b11111111));
+        emit_byte((uint8_t)((entry->vm_stack_slot >> 8) & 0b11111111));
+    } else if (match_then_next(LEX_LEFT_BRACKET)) {
+        mult_comparison(-1); // index value
+        
+        finish(LEX_RIGHT_BRACKET, "]");
+        finish(LEX_EQUAL, "=");
+
+        mult_comparison(-1); // new set value
+
+        emit_byte(OP_SET_INDEX);
+        emit_byte((uint8_t) (entry->vm_stack_slot & 0b11111111));
+        emit_byte((uint8_t) ((entry->vm_stack_slot >> 8) & 0b11111111));
+    } else {
+        compile_err(&parse, "expected '=' or '[' after vector/str identifier");
+        return;
+    }
+}
+
+static void expression() {
+    if (match_then_next(LEX_IDENTIFIER)) {
+        const Token var_token = parse.prev;
+        const VarEntry* entry = lookup_table(parse.cur_scope, var_token.start, var_token.length);
+        if (entry == NULL) {
+            compile_err(&parse, "undefined variable identifier name in this scope");
+            return;
+        }
+
+        if (entry->type == H_STR || entry->type == H_VECTOR) {
+            vec_or_str_assignment(entry);
+        }
+        else {
+            var_assignment(entry);
+        }
+    } else {
+        mult_comparison(-1);
+    }
+}
+
+// TODO: implement var parsing + mapping syntax analysis
+// ---> also, add chars? HELL NAHHH
+// ---> after fully mapping and modifying, do larger scale tests
 // ---> after tests; loops, then functions!
+// ---> add print basic built in function (might go down a rabbit hole)
 static void statement() {
-  if (match_datatype_peek())
-    var_declaration();
-  else if (match_then_next(LEX_IF))
-    if_statement();
-  else {
-    expression();
-    // mult_comparison(-1);
-    finish(LEX_SEMICOLON, ";");
-  }
+    if (match_datatype_peek())
+        var_declaration();
+    else if (match_then_next(LEX_IF))
+        if_statement();
+    else {
+        expression();
+        // mult_comparison(-1);
+        finish(LEX_SEMICOLON, ";");
+    }
 }
 
 bool compile(const char* source, Code* code) {

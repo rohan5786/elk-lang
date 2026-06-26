@@ -93,15 +93,52 @@ static Result run() {
 #endif
     uint8_t cur_instruction;
     switch (cur_instruction = NEXT_BYTE()) {
-      // TODO: change indeces to adapt or just be big enough
+      // UNKNOWN: change indeces to adapt or just be big enough
       case OP_GET_LOCAL: {
-        uint16_t vm_stack_index = NEXT_BYTE() | (NEXT_BYTE() << 8); // change eventually
+        uint16_t vm_stack_index = NEXT_BYTE() | (NEXT_BYTE() << 8); // change eventually ?
         push(vm.stack[vm_stack_index]);  // re-getting it
         break;
       }
       case OP_SET_LOCAL: {
-        uint16_t vm_stack_index = NEXT_BYTE() | (NEXT_BYTE() << 8); // change eventually
+        uint16_t vm_stack_index = NEXT_BYTE() | (NEXT_BYTE() << 8); // change eventually ?
         vm.stack[vm_stack_index] = *(vm.top - 1);
+        break;
+      }
+      case OP_SET_INDEX: {
+        const uint16_t stack_index = NEXT_BYTE() | (NEXT_BYTE() << 8);
+        Value to_modify = vm.stack[stack_index];
+
+        // working backwards; this is added last
+        Value new_set_val = pop();
+        uint16_t index_val = (uint16_t) GET_NUM(pop());
+        
+        if (to_modify.type == VAL_VEC) {
+          Vector* vec = GET_VEC(to_modify);
+
+          // TODO: fixed size arrays ---> dynamic arrays
+          if (index_val < 0 || index_val >= vec->count) {
+            runtime_err(NUM_VAL(index_val), "expected unsigned 16-bit integer index value for type '(fixed) vector'");
+            return RUNTIME_ERR;
+          }
+
+          vec->items[index_val] = new_set_val;
+        } else if (to_modify.type == VAL_STR) {
+          char* str = GET_STR(to_modify);
+
+          // bc of "" wrapping, strlen is 2 + what it should
+          if (index_val < 0 || index_val >= (int) strlen(str) - 2) {
+            runtime_err(NUM_VAL(index_val), "expected unisgned 16-bit integer index value for type 'str'");
+            return RUNTIME_ERR;
+          }
+          // includes quotes; a ==> "a"
+          if (!IS_STR(new_set_val) || strlen(GET_STR(new_set_val)) != 3) {
+            runtime_err(new_set_val, "expected single character length assignment for string literal");
+            return RUNTIME_ERR;
+          }
+          const char* new_set_val_str = GET_STR(new_set_val);
+          const char letter = new_set_val_str[1];
+          str[index_val + 1] = letter; // to shift past first buffer "
+        }
         break;
       }
       case OP_VECTOR: {

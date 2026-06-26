@@ -28,3 +28,6 @@ void compile_err(Parser* p, const char* msg) {
     p->error = true;
 }
 
+void compile_warn(Parser* p, const char* msg) {
+    fprintf(stderr, "[line %d] compiler warning: %s\n", p->cur.line, msg);
+}
