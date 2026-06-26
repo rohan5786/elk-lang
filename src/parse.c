@@ -689,47 +689,89 @@ static void parse_str() {
   parse.local_vm_count++;
 }
 
+static void parse_var() {
+    next_token();
+    if (!match_then_next(LEX_IDENTIFIER)) {
+        compile_err(&parse, "expected variable name identifier after type declaration");
+        return;
+    }
+
+    const Token var_name = parse.prev;
+
+    if (!match_then_next(LEX_EQUAL)) {
+        compile_err(&parse, "variable type 'var' must have an initializer");
+        return;
+    }
+    // probably need some sort of node system to evaluate this separately then push
+    // rewrite the structure: basic descent -> finalize, return evaluated Value -> emit bytes?
+    mult_comparison(-1); 
+    finish(LEX_SEMICOLON, ";");
+
+    // TODO
+    const VarType var_type = H_FLOAT; 
+    const int bit_num = -1;
+    // basic rest of insert
+    int result = insert_table(parse.cur_scope, var_type, bit_num, var_name.start, var_name.length, parse.local_vm_count);
+    if (result < 0) {
+        compile_err(&parse, "vartable full");
+        return;
+    } else if (result > 0) {
+        char* str = malloc(var_name.length + 1);
+        memcpy(str, var_name.start, var_name.length + 1);
+        str[var_name.length] = '\0';
+        fprintf(stderr,
+                "[line %d] compile-time error: redeclaration of variable '%s' in "
+                "local scope",
+                parse.cur.line, str);
+        parse.error = true;
+        return;
+    }
+
+    parse.local_vm_count++;
+}
+
 // DATATYPE RECOGNITION
 static void var_declaration() {
     LexType var_type = parse.cur.type;
 
-  switch (var_type) {
-    case LEX_VECTOR: {
-      parse_vector();
-      break;
+    switch (var_type) {
+        case LEX_VECTOR: {
+            parse_vector();
+            break;
+        }
+        case LEX_I8: {
+            parse_int(8);
+            break;
+        }
+        case LEX_I16: {
+            parse_int(16);
+            break;
+        }
+        case LEX_I32: {
+            parse_int(32);
+            break;
+        }
+        case LEX_I64: {
+            parse_int(64);
+            break;
+        }
+        case LEX_F32: {
+            parse_float(0);
+            break;
+        }
+        case LEX_F64: {
+            parse_float(1);
+            break;
+        }
+        case LEX_STR: {
+            parse_str();
+            break;
+        }
+        case LEX_VAR: {
+            parse_var();
+            break;
+        }
     }
-    case LEX_I8: {
-      parse_int(8);
-      break;
-    }
-    case LEX_I16: {
-      parse_int(16);
-      break;
-    }
-    case LEX_I32: {
-      parse_int(32);
-      break;
-    }
-    case LEX_I64: {
-      parse_int(64);
-      break;
-    }
-    case LEX_F32: {
-      parse_float(0);
-      break;
-    }
-    case LEX_F64: {
-      parse_float(1);
-      break;
-    }
-    case LEX_STR: {
-      parse_str();
-      break;
-    }
-    case LEX_VAR: {
-      break;
-    }
-  }
 }
 
 // assignment functions
