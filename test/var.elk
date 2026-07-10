@@ -1,3 +1,2 @@
-
-str x = "L";
-x[0] = "W";
+str x = "abcefg";
+x = "hijk" + "lmnop";

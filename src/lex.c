@@ -109,8 +109,7 @@ static Token number() {
 static LexType choose_identifier(char* name) {
   if (strcmp(name, "if") == 0) return LEX_IF;
   if (strcmp(name, "else") == 0) return LEX_ELSE;
-  if (strcmp(name, "for") == 0) return LEX_FOR;
-  if (strcmp(name, "while") == 0) return LEX_WHILE;
+  if (strcmp(name, "rep") == 0) return LEX_REP;
 
   if (strcmp(name, "zilch") == 0) return LEX_ZILCH;
   if (strcmp(name, "return") == 0) return LEX_RETURN;
@@ -127,11 +126,13 @@ static LexType choose_identifier(char* name) {
   if (strcmp(name, "str") == 0) return LEX_STR;
 
   if (strcmp(name, "vector") == 0) return LEX_VECTOR;
-  if (strcmp(name, "var") == 0) return LEX_VAR;
+  // TODO: node structure or uint8_t* arrays
+  // if (strcmp(name, "var") == 0) return LEX_VAR;
 
   return LEX_IDENTIFIER;
 }
 
+// "character array"
 static Token identifier() {
   while (alpha(peek()) || digit(peek())) next_char();
 

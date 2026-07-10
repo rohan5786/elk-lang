@@ -59,6 +59,33 @@ static Result run() {
     double a = pop().as.num;                                       \
     push(NUM_VAL(a op b));                                         \
   } while (0)
+#define ADD_OP()                                                              \
+  do {                                                                        \
+    if (IS_NUM(*(vm.top - 2)) && IS_NUM(*(vm.top - 1))) {                     \
+      double b = pop().as.num;                                                \
+      double a = pop().as.num;                                                \
+      push(NUM_VAL(a + b));                                                   \
+    } else if (IS_STR(*(vm.top - 2)) && IS_STR(*(vm.top - 1))) {              \
+      char* b = pop().as.str;                                                 \
+      char* a = pop().as.str;                                                 \
+      char* ab = malloc(strlen(a) + strlen(b) - 1);                           \
+      if (ab == NULL) {                                                       \
+        runtime_err(*(vm.top - 2),                                            \
+                    "not enough memory to concatenate two strings");          \
+        return RUNTIME_ERR;                                                   \
+      }                                                                       \
+      /* stupid removing extra quotes logic */                                \
+      memcpy(ab, a, strlen(a) - 1);                                           \
+      memcpy(ab + strlen(a) - 1, b + 1, strlen(b) - 1);                       \
+      ab[strlen(a) + strlen(b) - 2] = '\0';                                   \
+      push(STR_VAL(ab));                                                      \
+      free(a);                                                                \
+      free(b);                                                                \
+    } else {                                                                  \
+      runtime_err(*(vm.top - 2), "both operands must be numbers or strings"); \
+      return RUNTIME_ERR;                                                     \
+    }                                                                         \
+  } while (0)
 
 #define SINGLE_COMPARE(op)                                         \
   do {                                                             \
@@ -95,12 +122,14 @@ static Result run() {
     switch (cur_instruction = NEXT_BYTE()) {
       // UNKNOWN: change indeces to adapt or just be big enough
       case OP_GET_LOCAL: {
-        uint16_t vm_stack_index = NEXT_BYTE() | (NEXT_BYTE() << 8); // change eventually ?
-        push(vm.stack[vm_stack_index]);  // re-getting it
+        uint16_t vm_stack_index =
+            NEXT_BYTE() | (NEXT_BYTE() << 8);  // change eventually ?
+        push(vm.stack[vm_stack_index]);        // re-getting it
         break;
       }
       case OP_SET_LOCAL: {
-        uint16_t vm_stack_index = NEXT_BYTE() | (NEXT_BYTE() << 8); // change eventually ?
+        uint16_t vm_stack_index =
+            NEXT_BYTE() | (NEXT_BYTE() << 8);  // change eventually ?
         vm.stack[vm_stack_index] = *(vm.top - 1);
         break;
       }
@@ -110,14 +139,16 @@ static Result run() {
 
         // working backwards; this is added last
         Value new_set_val = pop();
-        uint16_t index_val = (uint16_t) GET_NUM(pop());
-        
+        int32_t index_val = GET_NUM(pop());
+
         if (to_modify.type == VAL_VEC) {
           Vector* vec = GET_VEC(to_modify);
 
           // TODO: fixed size arrays ---> dynamic arrays
           if (index_val < 0 || index_val >= vec->count) {
-            runtime_err(NUM_VAL(index_val), "expected unsigned 16-bit integer index value for type '(fixed) vector'");
+            runtime_err(NUM_VAL(index_val),
+                        "expected unsigned 16-bit integer index value for type "
+                        "'(fixed) vector'");
             return RUNTIME_ERR;
           }
 
@@ -126,18 +157,22 @@ static Result run() {
           char* str = GET_STR(to_modify);
 
           // bc of "" wrapping, strlen is 2 + what it should
-          if (index_val < 0 || index_val >= (int) strlen(str) - 2) {
-            runtime_err(NUM_VAL(index_val), "expected unisgned 16-bit integer index value for type 'str'");
+          if (index_val < 0 || index_val >= (int)strlen(str) - 2) {
+            runtime_err(NUM_VAL(index_val),
+                        "expected unisgned 16-bit integer index value for "
+                        "type 'str'");
             return RUNTIME_ERR;
           }
           // includes quotes; a ==> "a"
           if (!IS_STR(new_set_val) || strlen(GET_STR(new_set_val)) != 3) {
-            runtime_err(new_set_val, "expected single character length assignment for string literal");
+            runtime_err(new_set_val,
+                        "expected single character length assignment for "
+                        "string literal");
             return RUNTIME_ERR;
           }
           const char* new_set_val_str = GET_STR(new_set_val);
           const char letter = new_set_val_str[1];
-          str[index_val + 1] = letter; // to shift past first buffer "
+          str[index_val + 1] = letter;  // to shift past first buffer "
         }
         break;
       }
@@ -148,7 +183,7 @@ static Result run() {
         init_vec(vec);
         vec->capacity = vec_size;
         vec->count = vec_size;
-        vec->items = malloc(sizeof(Vector) * vec_size);
+        vec->items = malloc(sizeof(Value) * vec_size);
         for (int i = vec_size - 1; i >= 0; i--) vec->items[i] = pop();
 
         push(VEC_VAL((struct Vector*)(vec)));
@@ -226,11 +261,12 @@ static Result run() {
         break;
       }
       case OP_STR: {
-        uint32_t str_len = NEXT_BYTE() | (NEXT_BYTE() << 8) | (NEXT_BYTE() << 16) | (NEXT_BYTE() << 24);
+        uint32_t str_len = NEXT_BYTE() | (NEXT_BYTE() << 8) |
+                           (NEXT_BYTE() << 16) | (NEXT_BYTE() << 24);
         char* str = malloc(str_len + 1);
         for (int i = 0; i < str_len; i++) {
           const unsigned char ch = NEXT_BYTE();
-          str[i] = ch; // unsigned char
+          str[i] = ch;  // unsigned char
         }
         str[str_len] = '\0';
 
@@ -238,7 +274,7 @@ static Result run() {
         break;
       }
       case OP_ADD: {
-        BINARY_OP(+);
+        ADD_OP();
         break;
       }
       case OP_SUB: {
@@ -320,6 +356,11 @@ static Result run() {
         const bool true_eq =
             (!(IS_NUM(val) || IS_NULL(val)) || GET_NUM(val) != 0.0);
         if (!true_eq) vm.instruction_ptr += full_offset;
+        break;
+      }
+      case OP_LOOP: {
+        uint16_t full_offset = NEXT_BYTE() | (NEXT_BYTE() << 8);
+        vm.instruction_ptr -= full_offset;
         break;
       }
       case OP_RETURN: {

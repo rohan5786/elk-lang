@@ -43,6 +43,7 @@ typedef enum {
   OP_JMP,
   OP_TRUE_JMP,
   OP_FALSE_JMP,
+  OP_LOOP,
   // ending
   OP_RETURN,
 } OPCode;

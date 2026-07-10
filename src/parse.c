@@ -349,6 +349,14 @@ static int emit_jump(OPCode jmp_code) {
   return cur_code()->count - 3;  // index of opcode
 }
 
+static void emit_loop(int loop_start) {
+  emit_byte(OP_LOOP);
+  // go past the 2 size bytes (+2)
+  int offset = cur_code()->count - loop_start + 2;
+  emit_byte(offset & 0b11111111);
+  emit_byte((offset >> 8) & 0b11111111);
+}
+
 static void update_jump_size(int offset_index) {
   // [end byte (how many instructions skipped) - byte after 2 size bytes]
   // = (count - 1) - (offset + 2)
@@ -413,16 +421,42 @@ static void if_statement() {
   }
 }
 
+static void rep_statement() {
+  int rep_start = cur_code()->count; // at this point count
+
+  finish(LEX_LEFT_PAREN, "(");
+  mult_comparison(-1);
+  finish(LEX_RIGHT_PAREN, ")");
+
+  int rep_offset_index = emit_jump(OP_FALSE_JMP);
+
+  // NEW SCOPE
+  finish(LEX_LEFT_BRACE, "{");
+  parse.cur_scope = init_table(parse.cur_scope);
+
+  // maybe have the wrapper for func type be higher precedence to ^ in statement()
+  while (parse.cur.type != LEX_RIGHT_BRACE && parse.cur.type != LEX_EOF)
+    statement();
+  
+  // CLOSE SCOPE
+  finish(LEX_RIGHT_BRACE, "}");
+  free_scope(&parse);
+
+  emit_loop(rep_start);
+
+  update_jump_size(rep_offset_index);
+}
+
 // including LEX_VAR
 static int match_datatype_peek() {
-  for (int i = 37; i < 46; i++)
+  for (int i = 36; i < 45; i++)
     if (parse.cur.type == i) return 1;
   return 0;
 }
 
 // [38, 45] for lextype enum (no LEX_VAR)
 static int match_datatype_then_next() {
-  for (int i = 38; i < 46; i++)
+  for (int i = 37; i < 45; i++)
     if (match_then_next(i)) return 1;
   return 0;
 }
@@ -704,7 +738,7 @@ static void parse_var() {
     }
     // probably need some sort of node system to evaluate this separately then push
     // rewrite the structure: basic descent -> finalize, return evaluated Value -> emit bytes?
-    mult_comparison(-1); 
+    // CASEWORK lol mult_comparison(-1); 
     finish(LEX_SEMICOLON, ";");
 
     // TODO
@@ -767,10 +801,10 @@ static void var_declaration() {
             parse_str();
             break;
         }
-        case LEX_VAR: {
-            parse_var();
-            break;
-        }
+        // case LEX_VAR: {
+        //     parse_var();
+        //     break;
+        // }
     }
 }
 
@@ -842,6 +876,8 @@ static void statement() {
         var_declaration();
     else if (match_then_next(LEX_IF))
         if_statement();
+    else if (match_then_next(LEX_REP))
+        rep_statement();
     else {
         expression();
         // mult_comparison(-1);
