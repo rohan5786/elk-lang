@@ -124,7 +124,9 @@ static Result run() {
       case OP_GET_LOCAL: {
         uint16_t vm_stack_index =
             NEXT_BYTE() | (NEXT_BYTE() << 8);  // change eventually ?
-        push(vm.stack[vm_stack_index]);        // re-getting it
+        // read, don't modify later
+        const Value inside_val = vm.stack[vm_stack_index];
+        push(inside_val);        // re-getting it
         break;
       }
       case OP_SET_LOCAL: {

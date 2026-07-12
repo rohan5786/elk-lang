@@ -1,2 +1,2 @@
-str x = "abcefg";
-x = "hijk" + "lmnop";
+i8 x = 5;
+x = x + 1;
