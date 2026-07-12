@@ -251,6 +251,8 @@ static void raw_and_parentheses(int bit_num) {
     return;
   }
 
+  // needs to not modify, just read by value
+  // OP_GET_LOCAL needs to not modify
   if (match_then_next(LEX_IDENTIFIER)) {
     const Token var_token = parse.prev;
     const VarEntry* entry = lookup_table(parse.cur_scope, var_token.start, var_token.length);
@@ -434,7 +436,6 @@ static void rep_statement() {
   finish(LEX_LEFT_BRACE, "{");
   parse.cur_scope = init_table(parse.cur_scope);
 
-  // maybe have the wrapper for func type be higher precedence to ^ in statement()
   while (parse.cur.type != LEX_RIGHT_BRACE && parse.cur.type != LEX_EOF)
     statement();
   
@@ -447,18 +448,47 @@ static void rep_statement() {
   update_jump_size(rep_offset_index);
 }
 
-// including LEX_VAR
-static int match_datatype_peek() {
-  for (int i = 36; i < 45; i++)
-    if (parse.cur.type == i) return 1;
-  return 0;
+static void func_statement() {
+    const Token ret_type = parse.prev;
+
+    if (!match_then_next(LEX_IDENTIFIER)) {
+        compile_err(&parse, "expected function name identifier after return type");
+        return;
+    }
+    const Token func_name = parse.prev;
+    
+    finish(LEX_LEFT_PAREN, "(");
+    if (match_then_next(LEX_RIGHT_PAREN)) {
+        // NEW SCOPE
+        finish(LEX_LEFT_BRACE, "{");
+        parse.cur_scope = init_table(parse.cur_scope);
+
+        while (parse.cur.type != LEX_RIGHT_BRACE && parse.cur.type != LEX_EOF)
+        statement();
+    
+        // CLOSE SCOPE
+        finish(LEX_RIGHT_BRACE, "}");
+        free_scope(&parse);
+    }
+    // TODO in p2
+    else {
+        compile_err(&parse, "v0 error: expected no function parameters");
+        return;
+    }
 }
 
-// [38, 45] for lextype enum (no LEX_VAR)
-static int match_datatype_then_next() {
-  for (int i = 37; i < 45; i++)
-    if (match_then_next(i)) return 1;
-  return 0;
+// including LEX_VAR
+static bool match_datatype_peek() {
+    return parse.cur.type > 35 && parse.cur.type < 45;
+}
+
+// no LEX_VAR
+static int match_datatype_next() {
+    if (parse.cur.type > 36 && parse.cur.type < 45) {
+        next_token();
+        return 1;
+    }
+    return 0;
 }
 
 // vector<...> name = {...};
@@ -469,7 +499,7 @@ static void parse_vector() {
     syntax_err(&parse, "<");
     return;
   }
-  if (!match_datatype_then_next()) {
+  if (!match_datatype_next()) {
     compile_err(&parse, "expected statically typed inner datatype for type 'vector'");
     return;
   }
@@ -855,13 +885,12 @@ static void expression() {
             return;
         }
 
-        if (entry->type == H_STR || entry->type == H_VECTOR) {
+        if (entry->type == H_STR || entry->type == H_VECTOR)
             vec_or_str_assignment(entry);
-        }
-        else {
+        else
             var_assignment(entry);
-        }
-    } else {
+    } 
+    else {
         mult_comparison(-1);
     }
 }
@@ -872,8 +901,13 @@ static void expression() {
 // ---> after tests; loops, then functions!
 // ---> add print basic built in function (might go down a rabbit hole)
 static void statement() {
-    if (match_datatype_peek())
+    // function return types
+    if (match_then_next(LEX_VOID))
+        func_statement();
+    else if (match_datatype_peek()) {
+        // get to save type & identifier here, then continue (accept as inputs into var_dec() & func_statement())
         var_declaration();
+    }
     else if (match_then_next(LEX_IF))
         if_statement();
     else if (match_then_next(LEX_REP))

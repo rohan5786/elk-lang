@@ -108,6 +108,8 @@ int disassemble_instruction(Code* code, int index) {
       return jmp_instruction("TRUE_JMP", index, line);
     case OP_FALSE_JMP:
       return jmp_instruction("FALSE_JMP", index, line);
+    case OP_LOOP:
+      return jmp_instruction("LOOP", index, line);
     case OP_RETURN:
       return print_instruction("RETURN", index, line);
     default:
